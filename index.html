@@ -21,13 +21,9 @@
         }
         body { font-family: 'Inter', system-ui, Arial, sans-serif; margin:0; display:flex; height:100vh; color: var(--text-color); }
         
-        /* * === КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ ДЛЯ МОБИЛЬНЫХ ===
-         * Мы явно устанавливаем z-index для карты = 1,
-         * чтобы она была "ниже" всех кнопок и сайдбара.
-        */
         #map { 
             flex:1; 
-            position: relative; /* Обязательно для z-index */
+            position: relative;
             z-index: 1; 
         }
         
@@ -43,7 +39,7 @@
             display:flex; 
             flex-direction:column;
             position: relative;
-            z-index: 100; /* Выше карты (1) */
+            z-index: 100; /* Выше карты */
         }
         
         h1 { font-size:24px; margin:0 0 12px; color:var(--primary-color); }
@@ -74,7 +70,7 @@
         /* Mobile Menu Button */
         #menuToggle {
             position: absolute; top: 15px; right: 15px;
-            z-index: 1001; /* Выше сайдбара (100) и карты (1) */
+            z-index: 1001; /* Выше всего */
             padding: 10px 15px; border-radius: 50%;
             background: rgba(0, 123, 255, 0.8); color: white;
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
@@ -108,24 +104,36 @@
             background: var(--primary-color); color: white;
             padding: 8px 15px; border-radius: 8px;
             box-shadow: var(--shadow-light); font-size: 14px;
-            z-index: 999; /* Чуть выше карты */
+            z-index: 999; /* Выше карты, но ниже кнопок */
             display: none; white-space: nowrap; 
         }
 
-        /* --- Mobile Adaptivity (Media Query) --- */
+        /* --- *ИСПРАВЛЕННЫЙ* Mobile Adaptivity (Media Query) --- */
         @media (max-width: 768px) {
-            body { flex-direction: column; }
+            /* * Мы НЕ используем 'flex-direction: column' для body.
+             * Вместо этого, сайдбар становится 'position: fixed' 
+             * и вынимается из потока, а карта (flex: 1)
+             * автоматически занимает 100% экрана.
+            */
             .sidebar {
                 position: fixed; top: 0; right: 0;
-                width: 100%; max-width: 100%; height: 100%;
-                box-shadow: none; transform: translateX(100%); 
+                width: 100%; 
+                max-width: 320px; /* Ограничиваем ширину для лучшего вида */
+                height: 100%;
+                box-shadow: -4px 0 16px rgba(0,0,0,0.2); /* Улучшенная тень */
+                transform: translateX(100%); /* Спрятать за экраном */
                 transition: transform 0.3s ease-in-out;
-                padding-bottom: 80px; 
             }
-            .sidebar.active { transform: translateX(0); }
-            #map { width: 100%; height: 100vh; }
-            #menuToggle { display: block; }
-            #addModeMessage { width: 80%; white-space: normal; }
+            .sidebar.active { 
+                transform: translateX(0); /* Показать */
+            }
+            #menuToggle { 
+                display: block; /* Показать кнопку меню */
+            }
+            #addModeMessage { 
+                width: 80%; 
+                white-space: normal; 
+            }
         }
         
         /* Кастомные иконки (DivIcon) */
@@ -202,9 +210,6 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <script>
-        /* * Мы используем 'DOMContentLoaded', что является стандартом.
-         * Это гарантирует, что HTML загружен до запуска скрипта.
-        */
         document.addEventListener('DOMContentLoaded', () => {
             
             // --- Инициализация элементов ---
@@ -220,14 +225,14 @@
             const exportBtn = document.getElementById('exportBtn');
             const clearBtn = document.getElementById('clearBtn');
             
-            // Проверка наличия Leaflet
             if (typeof L === 'undefined') {
                 console.error('Leaflet library failed to load.');
                 alert('Ошибка: Библиотека карты (Leaflet) не загружена.');
                 return;
             }
             
-            // Создание кастомных иконок
+            // ... (Код иконок, карты, renderReports... все без изменений) ...
+            
             const createCustomIcon = (className, content) => new L.DivIcon({
                 className: className,
                 html: content,
@@ -236,9 +241,7 @@
             });
             const iconOpen = createCustomIcon('marker-icon-open', '<i class="fa fa-trash"></i>');
             const iconCleaned = createCustomIcon('marker-icon-clean', '<i class="fa fa-check"></i>');
-
             
-            // --- Инициализация карты ---
             const map = L.map('map').setView([43.25, 76.95], 12);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
@@ -296,7 +299,6 @@
                 });
             }
 
-            // --- Логика добавления точки ---
             let addingMode = false;
             const addModeMessage = document.getElementById('addModeMessage');
             
@@ -318,9 +320,17 @@
                 sidebar.classList.toggle('active');
             });
             
+            // *** ИСПРАВЛЕНИЕ UX ДЛЯ КНОПКИ "СООБЩИТЬ" ***
             addPointBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 toggleAddingMode(true);
+                
+                // --- НОВЫЙ КОД ---
+                // Если сайдбар открыт (на мобильном), то закрываем его
+                if (sidebar.classList.contains('active')) {
+                    sidebar.classList.remove('active');
+                }
+                // --- КОНЕЦ НОВОГО КОДА ---
             });
             
             cancelAddModeBtn.addEventListener('click', (e) => {
@@ -328,7 +338,8 @@
                 toggleAddingMode(false);
             });
 
-            // --- Модальное окно и форма ---
+            // ... (Весь остальной JS-код для модала, сохранения, удаления... остается БЕЗ ИЗМЕНЕНИЙ) ...
+            
             const coordsInput = document.getElementById('coords');
             const titleInput = document.getElementById('titleInput');
             const descInput = document.getElementById('descInput');
@@ -404,7 +415,6 @@
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(reports));
             }
 
-            // list actions (delegation)
             reportsList.addEventListener('click', (ev) => {
                 const btn = ev.target.closest('button');
                 if (!btn) return;
@@ -430,7 +440,6 @@
                 }
             });
 
-            // Export / Clear
             exportBtn.addEventListener('click', () => {
                 if (reports.length === 0) {
                     alert('Нет данных для экспорта.');
