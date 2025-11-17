@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EcoMap — Отчёты о загрязнениях</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    
+    <style>
+        /* --- CSS Variables & Base Styles --- */
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --bg-color: #f7f9fc;
+            --text-color: #333;
+            --shadow-light: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        body { font-family: 'Inter', system-ui, Arial, sans-serif; margin:0; display:flex; height:100vh; color: var(--text-color); }
+        #map { flex:1; }
+        
+        /* --- Sidebar & Adaptivity Styles --- */
+        .sidebar { 
+            width: 380px; 
+            min-width: 320px; 
+            max-width: 400px;
+            background:var(--bg-color); 
+            padding:16px; 
+            box-shadow: -4px 0 16px rgba(0,0,0,0.08); 
+            overflow-y:auto; 
+            display:flex; 
+            flex-direction:column;
+            position: relative;
+            z-index: 50; 
+        }
+        
+        h1 { font-size:24px; margin:0 0 12px; color:var(--primary-color); }
+        .meta { font-size:13px; color:var(--secondary-color); margin-bottom:12px; }
+        .report { border:1px solid #e3e8ef; padding:12px; margin-bottom:10px; border-radius:10px; background:#fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: transform 0.2s; }
+        .report:hover { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .report strong { font-size: 1.1em; }
+        
+        button { padding:10px 14px; border-radius:8px; border:0; background:var(--primary-color); color:#fff; cursor:pointer; font-weight:600; transition: background 0.3s; }
+        button:hover { background: #0056b3; }
+        .btn-ghost { background:transparent; color:var(--primary-color); border:1px solid #cfe3ff; }
+        .btn-ghost:hover { background: #e9f3ff; }
+        .small { font-size:13px; padding:8px 12px; font-weight: normal; }
+
+        .status-open { color:var(--danger-color); font-weight:600; }
+        .status-clean { color:var(--success-color); font-weight:600; }
+        .thumb { width:100%; max-height:160px; object-fit:cover; border-radius:8px; margin-top:8px; border:1px solid #eee; }
+        
+        /* Thematic Content */
+        .thematic-content {
+            padding: 15px 0;
+            margin-top: 15px;
+            border-top: 1px solid #e3e8ef;
+            color: #555;
+            font-size: 14px;
+        }
+        .thematic-content h3 {
+            color: var(--primary-color);
+            margin-top: 0;
+            font-size: 1.3em;
+        }
+        .thematic-image {
+            width: 100%;
+            height: 150px;
+            background-color: #e9f3ff;
+            background-image: url('https://picsum.photos/400/150?random=1');
+            background-size: cover;
+            background-position: center;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+        }
+
+        /* Mobile Menu Button */
+        #menuToggle {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 1000; 
+            padding: 10px 15px;
+            border-radius: 50%;
+            background: rgba(0, 123, 255, 0.8);
+            color: white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            display: none; 
+        }
+
+        /* --- Модал --- */
+        .overlay { 
+            position:fixed; 
+            inset:0; 
+            display:none; 
+            align-items:center; 
+            justify-content:center; 
+            background:rgba(0,0,0,0.5); 
+            z-index:1000; 
+            overflow-y: auto; 
+        }
+        .card { 
+            background:white; 
+            padding:20px; 
+            border-radius:12px; 
+            width: 450px; 
+            max-width: 90%; 
+            box-shadow:var(--shadow-light); 
+            margin: 20px auto; 
+            box-sizing: border-box;
+        }
+        .row { margin-bottom:12px; }
+        label { display:block; font-size:14px; margin-bottom:5px; color:#333; font-weight:500; }
+        input[type="text"], textarea, input[type="file"] { width:100%; padding:10px; border-radius:8px; border:1px solid #d7e0ec; box-sizing:border-box; }
+        textarea { resize: vertical; }
+
+        /* Стили для режима добавления */
+        .map-adding-mode { cursor: crosshair !important; }
+        #addModeMessage {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary-color);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 8px;
+            box-shadow: var(--shadow-light);
+            font-size: 14px;
+            z-index: 500;
+            display: none;
+            white-space: nowrap; 
+        }
+
+
+        /* --- Mobile Adaptivity (Media Query) --- */
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .sidebar {
+                position: fixed;
+                top: 0;
+                right: 0;
+                width: 100%;
+                max-width: 100%;
+                height: 100%;
+                box-shadow: none;
+                transform: translateX(100%); 
+                transition: transform 0.3s ease-in-out;
+                padding-bottom: 80px; 
+            }
+            .sidebar.active {
+                transform: translateX(0); 
+            }
+            #map {
+                width: 100%;
+                height: 100vh;
+            }
+            #menuToggle {
+                display: block; 
+            }
+            #addModeMessage {
+                width: 80%;
+                font-size: 16px;
+                padding: 12px;
+                white-space: normal; 
+            }
+        }
+        
+        /* Определение кастомных иконок для Leaflet (замена Awesome Markers) */
+        .marker-icon-open {
+            background-color: var(--danger-color);
+            border: 2px solid white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            line-height: 26px;
+            text-align: center;
+            font-size: 14px;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 0 5px rgba(0,0,0,0.4);
+        }
+        .marker-icon-clean {
+            background-color: var(--success-color);
+            border: 2px solid white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            line-height: 26px;
+            text-align: center;
+            font-size: 14px;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 0 5px rgba(0,0,0,0.4);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+    <div id="addModeMessage">Кликните на карту, чтобы отметить место загрязнения, или <a href="#" id="cancelAddMode" style="color: #ffcc00; font-weight: bold;">отмените</a>.</div>
+    
+    <button id="menuToggle"><i class="fas fa-bars"></i></button>
+
+    <div class="sidebar" id="sidebar">
+        <h1>🗑️ EcoMap — Отчёты о загрязнениях</h1>
+        <p class="meta">Местные жители сообщают о местах, требующих уборки.</p>
+        
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+            <button id="addPointBtn" class="btn">📍 Сообщить о точке</button>
+            <button id="exportBtn" class="small btn-ghost">Export JSON</button>
+            <button id="clearBtn" class="small btn-ghost">Clear All</button>
+        </div>
+        
+        <div id="reportsList"></div>
+
+        <div class="thematic-content">
+            <h3>🌱 Наша миссия</h3>
+            <div class="thematic-image" style="background-image: url('https://picsum.photos/400/150?grayscale&blur=2&random=1');"></div>
+            <p>EcoMap создан для того, чтобы дать гражданам возможность участвовать в сохранении чистоты. Отмечая проблемные зоны, мы коллективно создаем карту, которая помогает волонтерам и местным властям эффективно планировать уборку.</p>
+            <p>Ваш отчёт – это первый шаг к чистой планете!</p>
+            <p class="meta" style="margin-top:10px;">Проект создан для демонстрации навыков: Leaflet, Адаптивный дизайн, LocalStorage.</p>
+        </div>
+    
+    </div>
+        
+    <div class="overlay" id="overlay">
+        <div class="card">
+            <h3 id="modalTitle" style="margin-top:0;">Новое место загрязнения</h3>
+            <div class="row">
+                <label>Координаты (Latitude, Longitude)</label>
+                <input type="text" id="coords" disabled />
+            </div>
+            <div class="row">
+                <label>Заголовок (Обязательно)</label>
+                <input id="titleInput" type="text" placeholder="Например: Свалка у озера" />
+            </div>
+            <div class="row">
+                <label>Описание</label>
+                <textarea id="descInput" rows="3" placeholder="Краткое описание проблемы и типа мусора..."></textarea>
+            </div>
+            <div class="row">
+                <label>Фото (опционально)</label>
+                <input id="photoInput" type="file" accept="image/*" />
+                <img id="photoPreview" class="thumb" style="display:none;" />
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:15px;">
+                <button id="cancelBtn" class="btn-ghost">Отмена</button>
+                <button id="saveBtn">Сохранить Отчёт</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Создание кастомных иконок с помощью Leaflet.DivIcon
+            const createCustomIcon = (className, content) => new L.DivIcon({
+                className: className,
+                html: content,
+                iconSize: [30, 30],
+                iconAnchor: [15, 30]
+            });
+            const iconOpen = createCustomIcon('marker-icon-open', '<i class="fa fa-trash"></i>');
+            const iconCleaned = createCustomIcon('marker-icon-clean', '<i class="fa fa-check"></i>');
+
+            
+            // --- Инициализация карты и логика ---
+            const map = L.map('map').setView([43.25, 76.95], 12); 
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            const STORAGE_KEY = 'ecomap_reports_v2';
+            let reports = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const markers = L.layerGroup().addTo(map);
+
+            function escapeHtml(s='') { return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;'); }
+
+            function renderReports() {
+                markers.clearLayers();
+                const list = document.getElementById('reportsList');
+                list.innerHTML = '';
+                
+                reports.forEach((r, i) => {
+                    const el = document.createElement('div');
+                    el.className = 'report';
+                    el.innerHTML = `
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <strong>${escapeHtml(r.title || 'Без названия')}</strong>
+                            <span class="${r.cleaned ? 'status-clean' : 'status-open'}">${r.cleaned ? 'Убрано' : 'Открыто'}</span>
+                        </div>
+                        <div class="meta">${new Date(r.created).toLocaleDateString()} ${new Date(r.created).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} • ${r.lat.toFixed(5)}, ${r.lng.toFixed(5)}</div>
+                        <div>${escapeHtml(r.description || 'Нет описания')}</div>
+                    `;
+                    if (r.photo) {
+                        const img = document.createElement('img');
+                        img.src = r.photo;
+                        img.className = 'thumb';
+                        el.appendChild(img);
+                    }
+
+                    const actions = document.createElement('div');
+                    actions.style.marginTop = '10px';
+                    actions.style.display = 'flex';
+                    actions.style.gap = '8px';
+                    actions.innerHTML = `
+                        <button class="small" data-idx="${i}" data-action="goto">Перейти</button>
+                        <button class="small btn-ghost" data-idx="${i}" data-action="toggle">${r.cleaned ? 'Отменить Уборку' : 'Отметить как Убрано'}</button>
+                        <button class="small btn-ghost" data-idx="${i}" data-action="delete" style="color:var(--danger-color);border-color:#f8d7da;">Удалить</button>
+                    `;
+                    el.appendChild(actions);
+                    list.appendChild(el);
+
+                    const markerIcon = r.cleaned ? iconCleaned : iconOpen;
+                    const marker = L.marker([r.lat, r.lng], { icon: markerIcon }).addTo(markers);
+                    let popupHtml = `<strong style="font-size:1.1em;">${escapeHtml(r.title || 'Без названия')}</strong><br>`;
+                    popupHtml += `<span style="font-size:0.9em;color:var(--secondary-color);">${r.lat.toFixed(5)}, ${r.lng.toFixed(5)}</span><hr style="margin:5px 0;">`;
+                    popupHtml += `<p>${escapeHtml(r.description || 'Нет описания')}</p>`;
+                    if (r.photo) popupHtml += `<img src="${r.photo}" style="width:100%;max-width:250px;height:auto;margin-top:6px;border-radius:6px;object-fit:cover;">`;
+                    marker.bindPopup(popupHtml);
+                });
+            }
+            renderReports();
+
+            // --- Логика добавления точки ---
+            let addingMode = false;
+            const addModeMessage = document.getElementById('addModeMessage');
+
+            function toggleAddingMode(enable) {
+                addingMode = enable;
+                map._container.classList.toggle('map-adding-mode', enable);
+                addModeMessage.style.display = enable ? 'block' : 'none';
+            }
+
+            document.getElementById('addPointBtn').onclick = (e) => {
+                e.preventDefault();
+                toggleAddingMode(true);
+            };
+
+            document.getElementById('cancelAddMode').onclick = (e) => {
+                e.preventDefault();
+                toggleAddingMode(false);
+            };
+
+            map.on('click', (e) => {
+                if (addingMode) {
+                    openFormAt(e.latlng);
+                    toggleAddingMode(false);
+                }
+            });
+
+            // --- Модальное окно и форма ---
+            const overlay = document.getElementById('overlay');
+            const coordsInput = document.getElementById('coords');
+            const titleInput = document.getElementById('titleInput');
+            const descInput = document.getElementById('descInput');
+            const photoInput = document.getElementById('photoInput');
+            const photoPreview = document.getElementById('photoPreview');
+            let currentLatLng = null;
+            let currentPhotoData = null;
+
+            function openFormAt(latlng) {
+                currentLatLng = latlng;
+                coordsInput.value = `${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`;
+                titleInput.value = '';
+                descInput.value = '';
+                photoInput.value = ''; 
+                photoPreview.style.display = 'none';
+                photoPreview.src = '';
+                currentPhotoData = null;
+                overlay.style.display = 'flex';
+                titleInput.focus(); 
+            }
+            document.getElementById('cancelBtn').onclick = () => overlay.style.display = 'none';
+
+            photoInput.addEventListener('change', (ev) => {
+                const file = ev.target.files?.[0];
+                if (!file) {
+                    photoPreview.style.display = 'none';
+                    currentPhotoData = null;
+                    return;
+                }
+                if (file.size > 2 * 1024 * 1024) { 
+                    alert('Размер файла превышает 2MB. Пожалуйста, выберите меньший файл.');
+                    photoInput.value = '';
+                    photoPreview.style.display = 'none';
+                    currentPhotoData = null;
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = () => {
+                    photoPreview.src = reader.result;
+                    photoPreview.style.display = 'block';
+                    currentPhotoData = reader.result; 
+                };
+                reader.readAsDataURL(file);
+            });
+
+            document.getElementById('saveBtn').onclick = () => {
+                const t = titleInput.value.trim();
+                if (!t) {
+                    alert('Пожалуйста, укажите заголовок!');
+                    titleInput.focus();
+                    return;
+                }
+
+                const d = descInput.value.trim();
+                const item = {
+                    id: Date.now(),
+                    title: t,
+                    description: d,
+                    lat: currentLatLng.lat,
+                    lng: currentLatLng.lng,
+                    photo: currentPhotoData || null,
+                    cleaned: false,
+                    created: Date.now()
+                };
+                reports.unshift(item); 
+                persist();
+                renderReports();
+                overlay.style.display = 'none';
+            };
+
+            function persist() {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(reports));
+            }
+
+            // list actions (delegation)
+            document.getElementById('reportsList').addEventListener('click', (ev) => {
+                const btn = ev.target.closest('button');
+                if (!btn) return;
+                const idx = Number(btn.dataset.idx);
+                const action = btn.dataset.action;
+                const r = reports[idx];
+                if (!r) return;
+
+                if (action === 'goto') {
+                    map.setView([r.lat, r.lng], 16); 
+                    if (window.innerWidth <= 768) { 
+                        document.getElementById('sidebar').classList.remove('active');
+                    }
+                } else if (action === 'toggle') {
+                    reports[idx].cleaned = !reports[idx].cleaned;
+                    persist();
+                    renderReports();
+                } else if (action === 'delete') {
+                    if (!confirm(`Вы действительно хотите удалить отчёт "${r.title}"?`)) return;
+                    reports.splice(idx,1);
+                    persist();
+                    renderReports();
+                }
+            });
+
+            // Export / Clear
+            document.getElementById('exportBtn').onclick = () => {
+                if (reports.length === 0) {
+                    alert('Нет данных для экспорта.');
+                    return;
+                }
+                const data = JSON.stringify(reports, null, 2);
+                const blob = new Blob([data], {type:'application/json'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = 'ecomap_reports.json'; a.click();
+                URL.revokeObjectURL(url);
+            };
+            document.getElementById('clearBtn').onclick = () => {
+                if (!confirm('Вы уверены? Это удалит ВСЕ сохранённые отчёты!')) return;
+                reports = [];
+                persist();
+                renderReports();
+            };
+
+            // Mobile Menu Toggle Logic
+            const sidebar = document.getElementById('sidebar');
+            document.getElementById('menuToggle').onclick = () => {
+                sidebar.classList.toggle('active');
+            };
+        });
+    </script>
+</body>
+</html>
