@@ -6,22 +6,34 @@
             // --- Инициализация элементов ---
             const mapContainer = document.getElementById('map');
             const sidebar = document.getElementById('sidebar');
-            const menuToggleBtn = document.getElementById('menuToggle'); // Кнопка меню
-            const addPointBtn = document.getElementById('addPointBtn'); // Главная кнопка
-            const cancelAddModeBtn = document.getElementById('cancelAddMode'); // Отмена добавления
+            const menuToggleBtn = document.getElementById('menuToggle');
+            const addPointBtn = document.getElementById('addPointBtn');
+            const cancelAddModeBtn = document.getElementById('cancelAddMode');
             const overlay = document.getElementById('overlay');
-            const cancelBtn = document.getElementById('cancelBtn'); // Отмена формы
-            const saveBtn = document.getElementById('saveBtn'); // Сохранение формы
-            const reportsList = document.getElementById('reportsList'); // Список отчетов
+            const cancelBtn = document.getElementById('cancelBtn');
+            const saveBtn = document.getElementById('saveBtn');
+            const reportsList = document.getElementById('reportsList');
             const exportBtn = document.getElementById('exportBtn');
             const clearBtn = document.getElementById('clearBtn');
             
-            // Проверка наличия Leaflet (критически важно для работы карты)
+            // Проверка наличия Leaflet
             if (typeof L === 'undefined') {
                 console.error('Leaflet library failed to load.');
-                alert('Ошибка: Библиотека карты (Leaflet) не загружена. Проверьте соединение.');
-                return; 
+                return;
             }
+            
+            // **********************************************
+            // * КРИТИЧЕСКИ ВАЖНОЕ ИСПРАВЛЕНИЕ ДЛЯ МОБИЛЬНЫХ *
+            // **********************************************
+            
+            // 1. Отключаем перехват Leaflet для боковой панели
+            L.DomEvent.disableClickPropagation(sidebar);
+            L.DomEvent.disableScrollPropagation(sidebar); // Также отключаем прокрутку, чтобы не конфликтовать с картой
+            
+            // 2. Отключаем перехват для кнопки меню (она поверх карты)
+            L.DomEvent.disableClickPropagation(menuToggleBtn);
+            
+            // **********************************************
             
             // Создание кастомных иконок с помощью Leaflet.DivIcon
             const createCustomIcon = (className, content) => new L.DivIcon({
@@ -35,7 +47,7 @@
 
             
             // --- Инициализация карты и логика ---
-            const map = L.map('map').setView([43.25, 76.95], 12); 
+            const map = L.map('map').setView([43.25, 76.95], 12);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
                 attribution: '© OpenStreetMap contributors'
@@ -47,10 +59,9 @@
 
             function escapeHtml(s='') { return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;'); }
 
-            // ... (Функция renderReports остается без изменений) ...
             function renderReports() {
                 markers.clearLayers();
-                const list = reportsList; // Используем переменную
+                const list = reportsList;
                 list.innerHTML = '';
                 
                 reports.forEach((r, i) => {
@@ -92,16 +103,14 @@
                     marker.bindPopup(popupHtml);
                 });
             }
-            renderReports();
 
             // --- Логика добавления точки ---
             let addingMode = false;
             const addModeMessage = document.getElementById('addModeMessage');
             
-            // ... (toggleAddingMode и map.on('click') остаются без изменений) ...
             function toggleAddingMode(enable) {
                 addingMode = enable;
-                mapContainer.classList.toggle('map-adding-mode', enable); // Используем mapContainer
+                mapContainer.classList.toggle('map-adding-mode', enable);
                 addModeMessage.style.display = enable ? 'block' : 'none';
             }
             map.on('click', (e) => {
@@ -111,27 +120,23 @@
                 }
             });
 
-
-            // --- НАЗНАЧЕНИЕ ОБРАБОТЧИКОВ (Используем addEventListener) ---
+            // --- НАЗНАЧЕНИЕ ОБРАБОТЧИКОВ ---
             
-            // 1. Кнопка меню (Мобильная)
             menuToggleBtn.addEventListener('click', () => {
                 sidebar.classList.toggle('active');
             });
             
-            // 2. Главная кнопка "Сообщить"
             addPointBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 toggleAddingMode(true);
             });
             
-            // 3. Отмена режима добавления
             cancelAddModeBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 toggleAddingMode(false);
             });
 
-            // --- Модальное окно и форма (Остается без изменений, но используется addEventListener) ---
+            // --- Модальное окно и форма ---
             const coordsInput = document.getElementById('coords');
             const titleInput = document.getElementById('titleInput');
             const descInput = document.getElementById('descInput');
@@ -145,16 +150,18 @@
                 coordsInput.value = `${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`;
                 titleInput.value = '';
                 descInput.value = '';
-                photoInput.value = ''; 
+                photoInput.value = '';
                 photoPreview.style.display = 'none';
                 photoPreview.src = '';
                 currentPhotoData = null;
                 overlay.style.display = 'flex';
-                titleInput.focus(); 
+                titleInput.focus();
+                
+                // Отключаем перехват Leaflet для модала
+                L.DomEvent.disableClickPropagation(overlay);
+                L.DomEvent.disableScrollPropagation(overlay);
             }
             cancelBtn.addEventListener('click', () => overlay.style.display = 'none');
-
-            // ... (PhotoInput, persist, saveBtn, reportsList.addEventListener - остаются без изменений) ...
 
             photoInput.addEventListener('change', (ev) => {
                 const file = ev.target.files?.[0];
@@ -163,7 +170,7 @@
                     currentPhotoData = null;
                     return;
                 }
-                if (file.size > 2 * 1024 * 1024) { 
+                if (file.size > 2 * 1024 * 1024) {
                     alert('Размер файла превышает 2MB. Пожалуйста, выберите меньший файл.');
                     photoInput.value = '';
                     photoPreview.style.display = 'none';
@@ -175,7 +182,7 @@
                 reader.onload = () => {
                     photoPreview.src = reader.result;
                     photoPreview.style.display = 'block';
-                    currentPhotoData = reader.result; 
+                    currentPhotoData = reader.result;
                 };
                 reader.readAsDataURL(file);
             });
@@ -199,7 +206,7 @@
                     cleaned: false,
                     created: Date.now()
                 };
-                reports.unshift(item); 
+                reports.unshift(item);
                 persist();
                 renderReports();
                 overlay.style.display = 'none';
@@ -219,8 +226,8 @@
                 if (!r) return;
 
                 if (action === 'goto') {
-                    map.setView([r.lat, r.lng], 16); 
-                    if (window.innerWidth <= 768) { 
+                    map.setView([r.lat, r.lng], 16);
+                    if (window.innerWidth <= 768) {
                         sidebar.classList.remove('active');
                     }
                 } else if (action === 'toggle') {
@@ -255,11 +262,6 @@
                 renderReports();
             });
 
-            // Добавление прослушивателей после renderReports
             renderReports();
         });
     </script>
-    </script>
-</body>
-
-</html>
