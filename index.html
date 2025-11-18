@@ -243,7 +243,6 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <!-- Firebase v10 with Storage -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp, query, orderBy, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
@@ -262,25 +261,7 @@
         const storage = getStorage(app);
         const col = collection(db, "reports");
 
-        window.db = db;
-        window.storage = storage;
-        window.col = col;
-        window.addDoc = addDoc;
-        window.onSnapshot = onSnapshot;
-        window.doc = doc;
-        window.updateDoc = updateDoc;
-        window.deleteDoc = deleteDoc;
-        window.serverTimestamp = serverTimestamp;
-        window.query = query;
-        window.orderBy = orderBy;
-        window.getDocs = getDocs;
-        window.writeBatch = writeBatch;
-        window.ref = ref;
-        window.uploadString = uploadString;
-        window.getDownloadURL = getDownloadURL;
-    </script>
-
-    <script>
+        // Main app code starts here (now inside the module)
         const map = L.map('map').setView([43.25, 76.95], 12);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap'
