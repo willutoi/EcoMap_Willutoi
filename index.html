@@ -55,6 +55,11 @@
         .report { border:1px solid #e3e8ef; padding:12px; margin-bottom:10px; border-radius:10px; background:#fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         
         button { padding:10px 14px; border-radius:8px; border:0; background:var(--primary-color); color:#fff; cursor:pointer; font-weight:600; }
+        /* --- Добавлено для заблокированной кнопки --- */
+        button:disabled {
+            background: #aaa;
+            cursor: not-allowed;
+        }
         .btn-ghost { background:transparent; color:var(--primary-color); border:1px solid #cfe3ff; }
         .small { font-size:13px; padding:8px 12px; font-weight: normal; }
 
@@ -211,8 +216,11 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
+    <!-- === FIREBASE SDKs (v8) === -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script> 
+    <!-- =========================== -->
+    
     <script>
         // ========================================================
         // === ВАША КОНФИГУРАЦИЯ FIREBASE ===
@@ -405,7 +413,7 @@
                 titleInput.focus();
             }
             
-            // *** ИСПРАВЛЕННЫЙ ОБРАБОТЧИК CANCELBTN ***
+            // *** ИСПРАВЛЕННЫЙ ОБРАБОТЧИК CANCELBTN (сбрасывает данные) ***
             cancelBtn.addEventListener('click', () => {
                 overlay.style.display = 'none';
                 currentLatLng = null; // Сброс данных при отмене
@@ -505,7 +513,9 @@
                          alert("Ошибка при обновлении статуса в базе.");
                     }
                 } else if (action === 'delete') {
+                    // Используем confirm() для простоты, так как prompt() неудобен
                     if (!confirm(`Вы действительно хотите удалить отчёт "${r.title}"?`)) return;
+                    
                     // *** УДАЛЕНИЕ В FIREBASE (v8) ***
                     try {
                         // Используем синтаксис v8
