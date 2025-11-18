@@ -9,88 +9,85 @@
     <style>
         :root {
             --primary: #00d4ff;
-            --primary-dark: #00a8cc;
+            --primary-dark: #00a3cc;
             --success: #27ae60;
             --danger: #e74c3c;
-            --bg: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            --card-bg: rgba(255, 255, 255, 0.97);
-            --glass: rgba(255, 255, 255, 0.15);
-            --radius: 24px;
-            --shadow: 0 20px 50px rgba(0,0,0,0.3);
+            --bg: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            --card-bg: #ffffff;
+            --text-dark: #222;
+            --text-light: #fff;
+            --radius: 26px;
+            --shadow: 0 25px 60px rgba(0,0,0,0.3);
         }
         * {margin:0;padding:0;box-sizing:border-box;}
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            height:100vh; overflow:hidden; background:var(--bg); color:#fff;
+            height:100vh; overflow:hidden; background:var(--bg); color:var(--text-light);
         }
         #map {position:fixed; inset:0; z-index:1;}
 
         .sidebar {
             position:fixed; top:0; right:0; height:100%; width:400px; max-width:95vw;
-            background: var(--glass); backdrop-filter: blur(20px); border-left:1px solid rgba(255,255,255,0.2);
+            background: rgba(15,32,39,0.95); backdrop-filter: blur(20px); border-left:1px solid rgba(255,255,255,0.1);
             padding:28px; overflow-y:auto; z-index:100; transition:transform .4s ease;
         }
         @media (max-width:768px) {
-            .sidebar {transform:translateX(110%); border-left:none;}
+            .sidebar {transform:translateX(110%);}
             .sidebar.active {transform:translateX(0);}
         }
 
         h1 {
-            font-size:30px; font-weight:900; margin-bottom:8px;
-            background:linear-gradient(90deg, #00d4ff, #8a2be2); -webkit-background-clip:text;
-            -webkit-text-fill-color:transparent;
+            font-size:32px; font-weight:900; margin-bottom:8px; color:white;
         }
 
         .btn {
-            padding:14px 28px; border:none; border-radius:18px; font-weight:700; cursor:pointer;
-            transition:all .3s ease; font-size:16px;
+            padding:15px 28px; border:none; border-radius:18px; font-weight:700; cursor:pointer;
+            transition:all .3s ease; font-size:16px; min-width:140px; text-align:center;
         }
         .btn-primary {
             background:linear-gradient(45deg, var(--primary), var(--primary-dark)); color:white;
             box-shadow:0 10px 30px rgba(0,212,255,0.4);
         }
-        .btn-primary:hover {transform:translateY(-3px); box-shadow:0 15px 40px rgba(0,212,255,0.5);}
+        .btn-primary:hover:not(:disabled) {transform:translateY(-3px); box-shadow:0 15px 40px rgba(0,212,255,0.5);}
+        .btn-primary:disabled {background:#888; box-shadow:none; cursor:not-allowed;}
         .btn-ghost {
-            background:rgba(255,255,255,0.2); color:white; border:2px solid rgba(255,255,255,0.3);
+            background:rgba(255,255,255,0.15); color:white; border:2px solid rgba(255,255,255,0.25);
             backdrop-filter:blur(10px);
         }
-        .btn-ghost:hover {background:rgba(255,255,255,0.3);}
+        .btn-ghost:hover {background:rgba(255,255,255,0.25);}
 
-        /* ИДЕАЛЬНАЯ МОДАЛКА — ПОЛНАЯ СИММЕТРИЯ */
+        /* ИДЕАЛЬНАЯ МОДАЛКА — ПОЛНАЯ СИММЕТРИЯ И ЧИТАЕМОСТЬ */
         .overlay {
             position:fixed; inset:0; background:rgba(0,0,0,0.75); backdrop-filter:blur(12px);
             display:none; align-items:center; justify-content:center; z-index:1002;
             padding:20px;
         }
         .card {
-            background:var(--card-bg); padding:40px; border-radius:var(--radius);
-            width:100%; max-width:580px; box-shadow:var(--shadow);
+            background:var(--card-bg); padding:42px; border-radius:var(--radius);
+            width:100%; max-width:600px; box-shadow:var(--shadow);
             border:1px solid rgba(0,212,255,0.2);
         }
 
-        .row {margin-bottom:26px;}
+        .row {margin-bottom:28px;}
         .row label {
-            display:block; margin-bottom:10px; font-weight:700; font-size:17px; color:#222;
+            display:block; margin-bottom:10px; font-weight:700; font-size:17px; color:var(--text-dark);
         }
         .row input, .row textarea {
-            width:100%; padding:16px; border:none; border-radius:16px; background:rgba(0,212,255,0.08);
+            width:100%; padding:16px; border:1px solid #ddd; border-radius:16px; background:white;
             font-size:16px; transition:all .3s;
         }
         .row input:focus, .row textarea:focus {
-            outline:none; background:white; box-shadow:0 0 0 4px rgba(0,212,255,0.25);
+            outline:none; border-color:var(--primary); box-shadow:0 0 0 4px rgba(0,212,255,0.2);
         }
-        .row input:disabled {background:rgba(0,0,0,0.05); color:#555;}
+        .row input:disabled {background:#f5f5f5; color:#666;}
 
         .thumb {
-            width:100%; max-height:260px; object-fit:cover; border-radius:18px; margin-top:16px;
-            box-shadow:0 12px 30px rgba(0,0,0,0.2);
+            width:100%; max-height:280px; object-fit:cover; border-radius:18px; margin-top:16px;
+            box-shadow:0 12px 35px rgba(0,0,0,0.2);
         }
 
-        /* ЧИСТЫЕ ИКОНКИ БЕЗ БЕЛОГО КВАДРАТА */
-        .leaflet-div-icon {
-            background:transparent !important;
-            border:none !important;
-        }
+        /* ЧИСТЫЕ ИКОНКИ */
+        .leaflet-div-icon {background:transparent !important; border:none !important;}
 
         #menuToggle {
             position:fixed; top:20px; right:20px; z-index:1001;
@@ -108,7 +105,7 @@
 
     <div class="sidebar" id="sidebar">
         <h1>EcoMap</h1>
-        <p style="opacity:0.9;font-size:15px;margin-bottom:28px;">Карта экологических проблем от жителей</p>
+        <p style="opacity:0.9;font-size:15px;margin-bottom:28px;">Карта загрязнений от жителей</p>
 
         <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px;">
             <button id="addPointBtn" class="btn btn-primary">Добавить точку</button>
@@ -117,7 +114,7 @@
         </div>
 
         <div id="confirmBox" style="display:none;background:rgba(231,76,60,0.25);padding:20px;border-radius:18px;border:1px solid rgba(231,76,60,0.4);margin-bottom:24px;">
-            <strong>Удалить все отчёты навсегда?</strong><br><br>
+            <strong style="color:white;">Удалить все отчёты?</strong><br><br>
             <button id="confirmYes" style="background:#e74c3c;padding:12px 28px;border-radius:18px;color:white;border:none;font-weight:700;">Да</button>
             <button id="confirmNo" class="btn btn-ghost" style="margin-left:12px;">Отмена</button>
         </div>
@@ -127,7 +124,7 @@
 
     <div class="overlay" id="overlay">
         <div class="card">
-            <h3 style="font-size:26px;font-weight:900;margin-bottom:32px;color:#222;">Новая точка загрязнения</h3>
+            <h3 style="font-size:26px;font-weight:900;margin-bottom:32px;color:var(--text-dark);">Новая точка загрязнения</h3>
             <div id="error" style="color:#e74c3c;margin-bottom:20px;font-weight:600;font-size:15px;"></div>
 
             <div class="row"><label>Координаты</label><input type="text" id="coords" disabled></div>
@@ -137,7 +134,7 @@
 
             <div style="display:flex;gap:16px;justify-content:flex-end;margin-top:36px;">
                 <button id="cancel" class="btn btn-ghost">Отмена</button>
-                <button id="save" class="btn btn-primary">Сохранить</button>
+                <button id="save" class="btn btn-primary">Сохранить Отчёт</button>
             </div>
         </div>
     </div>
@@ -166,7 +163,6 @@
         const markers = L.layerGroup().addTo(map);
         setTimeout(() => map.invalidateSize(), 300);
 
-        // ЧИСТЫЕ ИКОНКИ БЕЗ БЕЛОГО ФОНА
         const trashIcon = L.divIcon({html:'<i class="fas fa-dumpster-fire" style="color:#e74c3c;font-size:36px;"></i>', iconSize:[40,40], iconAnchor:[20,40], className:'clean-icon'});
         const cleanIcon = L.divIcon({html:'<i class="fas fa-seedling" style="color:#27ae60;font-size:36px;"></i>', iconSize:[40,40], iconAnchor:[20,40], className:'clean-icon'});
 
@@ -183,17 +179,17 @@
         });
 
         function render() {
-            markers.clearLayers(); list.innerHTML = reports.length ? '' : '<p style="text-align:center;opacity:0.8;margin:80px 0;font-size:18px;">Пока нет отчётов<br><small style="opacity:0.7;">Будьте первым!</small></p>';
+            markers.clearLayers(); list.innerHTML = reports.length ? '' : '<p style="text-align:center;opacity:0.8;margin:80px 0;font-size:18px;color:white;">Пока нет отчётов<br><small style="opacity:0.7;">Будьте первым!</small></p>';
             document.getElementById('exportBtn').disabled = document.getElementById('clearBtn').disabled = !reports.length;
 
             reports.forEach(r => {
                 const date = r.created ? new Date(r.created.seconds*1000) : new Date();
                 const div = document.createElement('div');
-                div.style = 'background:rgba(255,255,255,0.15);backdrop-filter:blur(20px);padding:22px;border-radius:20px;margin-bottom:20px;border:1px solid rgba(255,255,255,0.2);';
+                div.style = 'background:rgba(255,255,255,0.12);backdrop-filter:blur(20px);padding:22px;border-radius:20px;margin-bottom:20px;border:1px solid rgba(255,255,255,0.15);';
                 div.innerHTML = `
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
                         <strong style="font-size:19px;color:white;">${r.title||'Без названия'}</strong>
-                        <span style="padding:8px 16px;border-radius:30px;font-size:13px;font-weight:700;background:${r.cleaned?'rgba(39,174,96,0.4)':'rgba(231,76,60,0.4)'};color:white;border:1px solid ${r.cleaned?'#27ae60':'#e74c3c'};">${r.cleaned?'Убрано':'Требует уборки'}</span>
+                        <span style="padding:8px 16px;border-radius:30px;font-size:13px;font-weight:700;background:${r.cleaned?'rgba(39,174,96,0.4)':'rgba(231,76,60,0.4)'};color:white;border:1px solid ${r.cleaned?'#27ae60':'#e74c3c'};">${r.cleaned?'Убрано':'Открыто'}</span>
                     </div>
                     <div style="color:rgba(255,255,255,0.85);font-size:14px;margin-bottom:12px;">${date.toLocaleString('ru').slice(0,-3)} • ${r.lat.toFixed(5)}, ${r.lng.toFixed(5)}</div>
                     ${r.description ? `<p style="color:rgba(255,255,255,0.95);margin-bottom:16px;line-height:1.5;">${r.description}</p>` : ''}
@@ -269,16 +265,16 @@
                 });
                 overlay.style.display = 'none';
             } catch (err) {
-                errorDiv.textContent = 'Ошибка: ' + (err.message || 'проверьте интернет или правила Firebase');
+                errorDiv.textContent = 'Ошибка: ' + (err.message || 'проверьте интернет');
             } finally {
                 saveBtn.disabled = false;
-                saveBtn.textContent = oldText;
+                saveBtn.textContent = oldText; // ВСЕГДА возвращаем текст
             }
         };
 
         list.onclick = async e => {
             const b = e.target.closest('button');
-            if (!b) return;
+            if (!b || b.disabled) return;
             const oldText = b.textContent;
             b.disabled = true;
             b.textContent = '...';
@@ -289,7 +285,7 @@
                 if (b.dataset.act === 'del' && confirm('Удалить отчёт?')) await deleteDoc(doc(db,'reports',id));
             } catch(err) {alert('Ошибка: '+err.message);}
             b.disabled = false;
-            b.textContent = oldText;
+            b.textContent = oldText; // ВСЕГДА возвращаем
         };
 
         document.getElementById('exportBtn').onclick = () => {
@@ -304,16 +300,18 @@
         document.getElementById('confirmNo').onclick = () => document.getElementById('confirmBox').style.display = 'none';
         document.getElementById('confirmYes').onclick = async () => {
             document.getElementById('confirmBox').style.display = 'none';
-            document.getElementById('confirmYes').disabled = true;
-            document.getElementById('confirmYes').textContent = 'Удаление...';
+            const btn = document.getElementById('confirmYes');
+            const oldText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Удаление...';
             try {
                 const snap = await getDocs(col);
                 const batch = writeBatch(db);
                 snap.docs.forEach(d => batch.delete(d.ref));
                 await batch.commit();
             } catch(err) {alert('Ошибка: '+err.message);}
-            document.getElementById('confirmYes').disabled = false;
-            document.getElementById('confirmYes').textContent = 'Да, удалить';
+            btn.disabled = false;
+            btn.textContent = oldText;
         };
 
         document.getElementById('menuToggle').onclick = () => sidebar.classList.toggle('active');
