@@ -228,9 +228,9 @@
         };
         // ---------------------------------------------------------------------
         
-        // --- Инициализация ---
+        // --- Инициализация (v8) ---
         if (typeof firebase === 'undefined' || typeof firebase.firestore === 'undefined') {
-             alert('Ошибка: Библиотеки Firebase не загружены. Проверьте подключение CDN внизу body.');
+             alert('Ошибка: Библиотеки Firebase не загружены.');
         } else {
              firebase.initializeApp(firebaseConfig);
         }
@@ -287,14 +287,12 @@
                 const list = reportsList;
                 list.innerHTML = '';
                 
-                // Сортировка по дате создания (новые сверху)
                 reports.sort((a, b) => (b.created ? b.created.toMillis() : 0) - (a.created ? a.created.toMillis() : 0));
 
                 reports.forEach((r) => {
                     const el = document.createElement('div');
                     el.className = 'report';
                     
-                    // Форматирование даты
                     const date = r.created && r.created.toDate ? r.created.toDate() : new Date();
                     const dateStr = date.toLocaleDateString();
                     const timeStr = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
@@ -318,7 +316,6 @@
                     actions.style.marginTop = '10px';
                     actions.style.display = 'flex';
                     actions.style.gap = '8px';
-                    // Передаем уникальный ID документа (r.docId)
                     actions.innerHTML = `
                         <button class="small" data-doc-id="${r.docId}" data-action="goto">Перейти</button>
                         <button class="small btn-ghost" data-doc-id="${r.docId}" data-action="toggle">${r.cleaned ? 'Отменить Уборку' : 'Отметить как Убрано'}</button>
@@ -339,11 +336,9 @@
 
             // *** ФУНКЦИЯ: ЗАГРУЗКА И СЛУШАТЕЛЬ (ОНЛАЙН) ***
             function subscribeToReports() {
-                // Создаем слушатель, который автоматически обновляет данные при любом изменении в БД
                 reportsCollection.orderBy('created', 'desc').onSnapshot((snapshot) => {
                     const newReports = [];
                     snapshot.forEach((doc) => {
-                        // Добавляем ID документа (docId) к данным
                         newReports.push({ docId: doc.id, ...doc.data() });
                     });
                     reports = newReports;
@@ -378,7 +373,7 @@
             addPointBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 toggleAddingMode(true);
-                if (sidebar.classList.contains('active')) {
+                if (window.innerWidth <= 768) {
                     sidebar.classList.remove('active');
                 }
             });
@@ -409,7 +404,13 @@
                 overlay.style.display = 'flex';
                 titleInput.focus();
             }
-            cancelBtn.addEventListener('click', () => overlay.style.display = 'none');
+            
+            // *** ИСПРАВЛЕННЫЙ ОБРАБОТЧИК CANCELBTN ***
+            cancelBtn.addEventListener('click', () => {
+                overlay.style.display = 'none';
+                currentLatLng = null; // Сброс данных при отмене
+                currentPhotoData = null;
+            });
 
             photoInput.addEventListener('change', (ev) => {
                 const file = ev.target.files?.[0];
@@ -435,8 +436,7 @@
                 reader.readAsDataURL(file);
             });
 
-            // *** ФУНКЦИЯ СОХРАНЕНИЯ (ONLINE) ***
-            // *** ФУНКЦИЯ СОХРАНЕНИЯ (ONLINE) ***
+            // *** ИСПРАВЛЕННЫЙ ОБРАБОТЧИК SAVEBTN (v8) ***
             saveBtn.addEventListener('click', async () => {
                 const t = titleInput.value.trim();
                 if (!t) {
@@ -445,7 +445,7 @@
                     return;
                 }
                 
-                // --- ДОБАВЛЕНО: Блокируем кнопку, чтобы предотвратить двойное нажатие ---
+                // Блокируем кнопку
                 saveBtn.disabled = true;
                 saveBtn.textContent = 'Сохранение...';
 
@@ -457,24 +457,24 @@
                     lng: currentLatLng.lng,
                     photo: currentPhotoData || null,
                     cleaned: false,
-                    created: serverTimestamp()
+                    // Используем синтаксис v8 для времени
+                    created: firebase.firestore.FieldValue.serverTimestamp() 
                 };
                 
                 try {
-                    await addDoc(reportsCollection, item); 
+                    // Используем синтаксис v8 для добавления
+                    await reportsCollection.add(item); 
                     
-                    // --- ДОБАВЛЕНО: Закрываем модальное окно после успешного сохранения ---
-                    overlay.style.display = 'none'; 
+                    // Закрываем модал
+                    overlay.style.display = 'none';
                     
                 } catch (error) {
                     console.error("Ошибка при добавлении документа: ", error);
-                    alert("Не удалось сохранить отчёт в базу.");
+                    alert("Не удалось сохранить отчёт в базу. Проверьте Правила безопасности.");
                 } finally {
-                    // --- ДОБАВЛЕНО: Разблокируем кнопку и сбрасываем текст в любом случае ---
+                    // Разблокируем кнопку и сбрасываем данные
                     saveBtn.disabled = false;
                     saveBtn.textContent = 'Сохранить Отчёт';
-                    
-                    // --- ДОБАВЛЕНО: Сбрасываем все временные данные для предотвращения дублирования ---
                     currentLatLng = null;
                     currentPhotoData = null;
                 }
@@ -495,9 +495,10 @@
                         sidebar.classList.remove('active');
                     }
                 } else if (action === 'toggle') {
-                    // *** ОБНОВЛЕНИЕ В FIREBASE ***
+                    // *** ОБНОВЛЕНИЕ В FIREBASE (v8) ***
                     const newCleanedStatus = !r.cleaned;
                     try {
+                        // Используем синтаксис v8
                         await reportsCollection.doc(docId).update({ cleaned: newCleanedStatus });
                     } catch (error) {
                          console.error("Ошибка при обновлении статуса: ", error);
@@ -505,8 +506,9 @@
                     }
                 } else if (action === 'delete') {
                     if (!confirm(`Вы действительно хотите удалить отчёт "${r.title}"?`)) return;
-                    // *** УДАЛЕНИЕ В FIREBASE ***
+                    // *** УДАЛЕНИЕ В FIREBASE (v8) ***
                     try {
+                        // Используем синтаксис v8
                         await reportsCollection.doc(docId).delete();
                     } catch (error) {
                         console.error("Ошибка при удалении документа: ", error);
@@ -529,4 +531,3 @@
     </script>
 </body>
 </html>
-
