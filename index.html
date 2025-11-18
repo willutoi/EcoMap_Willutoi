@@ -41,7 +41,7 @@
        
         /* --- Sidebar --- */
         .sidebar {
-            position: absolute;
+            position: fixed;
             top: 0;
             right: 0;
             height: 100%;
@@ -177,6 +177,7 @@
             font-size: 15px;
         }
         .row input:disabled { background:#f8f9fa; }
+        .error-message { background:#f8d7da; color:#721c24; padding:10px; border-radius:8px; margin:10px 0; }
     </style>
 </head>
 <body>
@@ -452,6 +453,9 @@
                 modalErrorContainer.innerHTML = '';
                 overlay.style.display = 'flex';
                 titleInput.focus();
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('active');
+                }
             }
            
             // ФИКС: Закрытие модального окна при клике вне формы
