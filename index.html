@@ -3,86 +3,129 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>EcoMap — Отчёты о загрязнениях</title>
+    <title>EcoMap — Карта загрязнений</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <style>
         :root {
-            --primary: #007bff;
-            --danger: #dc3545;
+            --primary: #00d4ff;
+            --primary-dark: #00a8cc;
             --success: #28a745;
-            --gray: #6c757d;
-            --bg: #f7f9fc;
-            --card-bg: #ffffff;
-            --radius: 18px;
-            --shadow: 0 10px 40px rgba(0,0,0,0.15);
+            --danger: #e74c3c;
+            --bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --glass: rgba(255, 255, 255, 0.15);
+            --text: #333;
+            --radius: 24px;
+            --shadow: 0 20px 60px rgba(0,0,0,0.25);
         }
-        body {margin:0; height:100vh; overflow:hidden; font-family:system-ui,sans-serif; background:var(--bg);}
+        * {margin:0;padding:0;box-sizing:border-box;}
+        body {
+            font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif;
+            height:100vh; overflow:hidden; background:var(--bg); color:var(--text);
+            background-attachment:fixed;
+        }
         #map {position:fixed; inset:0; z-index:1;}
 
         .sidebar {
-            position:fixed; top:0; right:0; height:100%; width:380px; max-width:95vw;
-            background:white; padding:20px; box-shadow:-8px 0 30px rgba(0,0,0,0.15);
-            overflow-y:auto; z-index:100; transition:transform .35s ease;
+            position:fixed; top:0; right:0; height:100%; width:400px; max-width:95vw;
+            background: var(--glass); backdrop-filter: blur(20px); border-left:1px solid rgba(255,255,255,0.2);
+            padding:24px; overflow-y:auto; z-index:100; transition:transform .4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform:translateX(0);
         }
-        @media (max-width:768px) {.sidebar{transform:translateX(100%);}.sidebar.active{transform:translateX(0);}}
+        @media (max-width:768px) {
+            .sidebar {transform:translateX(110%); box-shadow:none;}
+            .sidebar.active {transform:translateX(0);}
+        }
 
+        h1 {
+            font-size:28px; font-weight:800; background:linear-gradient(90deg, #00d4ff, #764ba2); -webkit-background-clip:text;
+            -webkit-text-fill-color:transparent; margin-bottom:8px; display:flex; align-items:center; gap:12px;
+        }
+
+        .btn {
+            padding:14px 24px; border:none; border-radius:16px; font-weight:700; cursor:pointer;
+            transition:all .3s ease; box-shadow:0 8px 25px rgba(0,212,255,0.3);
+        }
+        .btn-primary {
+            background:linear-gradient(45deg, var(--primary), var(--primary-dark)); color:white;
+        }
+        .btn-primary:hover {transform:translateY(-4px); box-shadow:0 15px 35px rgba(0,212,255,0.4);}
+        .btn-ghost {
+            background:rgba(255,255,255,0.2); color:white; border:2px solid rgba(255,255,255,0.3); backdrop-filter:blur(10px);
+        }
+        .btn-ghost:hover {background:rgba(255,255,255,0.3); transform:translateY(-2px);}
+
+        /* ИДЕАЛЬНАЯ СИММЕТРИЯ МОДАЛКИ */
         .overlay {
-            position:fixed; inset:0; background:rgba(0,0,0,0.65);
+            position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(10px);
             display:none; align-items:center; justify-content:center; z-index:1002;
-            padding:20px; box-sizing:border-box;
+            padding:20px; animation:fadeIn .4s ease;
         }
+        @keyframes fadeIn {from{opacity:0}to{opacity:1}}
         .card {
-            background:var(--card-bg); padding:32px; border-radius:var(--radius);
-            width:100%; max-width:540px; box-shadow:var(--shadow); position:relative;
+            background:var(--card-bg); padding:40px; border-radius:var(--radius);
+            width:100%; max-width:560px; box-shadow:var(--shadow); position:relative;
+            backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.3);
+            animation:popUp .5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        .row {margin-bottom:20px;}
-        .row label {display:block; margin-bottom:8px; font-weight:600; font-size:15px; color:#333;}
+        @keyframes popUp {
+            0% {transform:scale(0.8); opacity:0;}
+            100% {transform:scale(1); opacity:1;}
+        }
+
+        .row {margin-bottom:24px;}
+        .row label {display:block; margin-bottom:10px; font-weight:700; font-size:16px; color:#222;}
         .row input, .row textarea {
-            width:100%; padding:14px; border:1px solid #ddd; border-radius:12px; font-size:16px;
+            width:100%; padding:16px; border:none; border-radius:16px; background:rgba(255,255,255,0.7);
+            font-size:16px; backdrop-filter:blur(10px); transition:all .3s;
         }
-        .row input:disabled {background:#f8f9fa;}
-        .thumb {width:100%; max-height:220px; object-fit:cover; border-radius:12px; margin-top:12px; border:1px solid #eee;}
+        .row input:focus, .row textarea:focus {outline:none; background:white; box-shadow:0 0 0 4px rgba(0,212,255,0.2);}
+
+        .thumb {
+            width:100%; max-height:240px; object-fit:cover; border-radius:16px; margin-top:16px;
+            box-shadow:0 10px 30px rgba(0,0,0,0.2);
+        }
 
         .loading {
-            position:absolute; inset:0; background:rgba(255,255,255,0.95);
-            display:none; align-items:center; justify-content:center; border-radius:var(--radius); z-index:10;
+            position:absolute; inset:0; background:rgba(255,255,255,0.98); border-radius:var(--radius);
+            display:none; align-items:center; justify-content:center; z-index:10;
         }
         .spinner {
-            width:44px; height:44px; border:5px solid #f0f0f0; border-top:5px solid var(--primary);
+            width:56px; height:56px; border:6px solid #f0f0f0; border-top:6px solid var(--primary);
             border-radius:50%; animation:spin 1s linear infinite;
         }
-        @keyframes spin {to{transform:rotate(360deg)}}
 
-        button {
-            padding:12px 20px; border:none; border-radius:12px; font-weight:600; cursor:pointer; transition:all .2s;
+        #menuToggle {
+            position:fixed; top:20px; right:20px; z-index:1001;
+            background:linear-gradient(45deg, var(--primary), var(--primary-dark));
+            color:white; border:none; width:60px; height:60px; border-radius:50%;
+            font-size:26px; box-shadow:0 10px 30px rgba(0,212,255,0.4); display:none;
+            animation:pulse 2s infinite;
         }
-        .btn-primary {background:var(--primary); color:white;}
-        .btn-primary:hover {opacity:0.92;}
-        .btn-ghost {background:transparent; color:var(--primary); border:2px solid #cfe2ff;}
-        .btn-ghost:hover {background:#e7f0ff;}
-        .btn-danger {background:var(--danger); color:white;}
+        @keyframes pulse {0%,100%{box-shadow:0 10px 30px rgba(0,212,255,0.4)} 50%{box-shadow:0 10px 50px rgba(0,212,255,0.6)}}
+        @media (max-width:768px) {#menuToggle{display:block;}}
     </style>
 </head>
 <body>
     <div id="map"></div>
 
-    <button id="menuToggle" style="position:fixed;top:16px;right:16px;z-index:1001;background:rgba(0,123,255,0.9);color:white;border:none;width:56px;height:56px;border-radius:50%;font-size:24px;box-shadow:0 4px 15px rgba(0,0,0,0.25);display:none;"><i class="fas fa-bars"></i></button>
+    <button id="menuToggle"><i class="fas fa-bars"></i></button>
 
     <div class="sidebar" id="sidebar">
-        <h1 style="font-size:26px;display:flex;align-items:center;gap:10px;">🗑️ EcoMap</h1>
-        <p style="color:#666;margin-bottom:20px;">Отчёты о загрязнениях от жителей</p>
+        <h1>EcoMap</h1>
+        <p style="color:rgba(255,255,255,0.9);font-size:15px;margin-bottom:24px;">Карта экологических проблем от жителей</p>
 
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
-            <button id="addPointBtn" class="btn-primary">📍 Сообщить о точке</button>
-            <button id="exportBtn" class="btn-ghost" disabled>Export JSON</button>
-            <button id="clearBtn" class="btn-ghost" disabled>Clear All</button>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;">
+            <button id="addPointBtn" class="btn btn-primary">Добавить точку</button>
+            <button id="exportBtn" class="btn btn-ghost" disabled>Export</button>
+            <button id="clearBtn" class="btn btn-ghost" disabled>Очистить</button>
         </div>
 
-        <div id="confirmBox" style="display:none;background:#fff3cd;padding:16px;border-radius:12px;border:1px solid #ffeaa7;margin-bottom:16px;">
-            <strong>Удалить все отчёты?</strong><br><br>
-            <button id="confirmYes" class="btn-danger">Да</button>
-            <button id="confirmNo" class="btn-ghost">Нет</button>
+        <div id="confirmBox" style="display:none;background:rgba(231,76,60,0.2);padding:20px;border-radius:16px;border:1px solid rgba(231,76,60,0.4);margin-bottom:20px;">
+            <strong style="color:white;">Удалить все отчёты?</strong><br><br>
+            <button id="confirmYes" style="background:#e74c3c;padding:12px 24px;border-radius:16px;color:white;border:none;font-weight:700;">Да, удалить</button>
+            <button id="confirmNo" class="btn btn-ghost" style="margin-left:12px;">Отмена</button>
         </div>
 
         <div id="list"></div>
@@ -91,17 +134,19 @@
     <div class="overlay" id="overlay">
         <div class="card">
             <div class="loading" id="loading"><div class="spinner"></div></div>
-            <h3 style="margin:0 0 24px;font-size:22px;">Новое место загрязнения</h3>
-            <div id="error" style="color:var(--danger);margin-bottom:16px;font-weight:600;"></div>
+            <h3 style="font-size:24px;font-weight:800;margin-bottom:28px;background:linear-gradient(90deg,#00d4ff,#764ba2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
+                Новая точка на карте
+            </h3>
+            <div id="error" style="color:#e74c3c;margin-bottom:20px;font-weight:600;"></div>
 
-            <div class="row"><label>Координаты</label><input type="text" id="coords" disabled></div>
-            <div class="row"><label>Заголовок *</label><input id="title" type="text" placeholder="Например: Свалка у реки"></div>
-            <div class="row"><label>Описание</label><textarea id="desc" rows="4" placeholder="Подробности..."></textarea></div>
+            <div class="row"><label>Координаты</label><input type="text" id="coords" disabled style="background:rgba(0,212,255,0.1);"></div>
+            <div class="row"><label>Заголовок *</label><input id="title" placeholder="Например: Мусор у реки"></div>
+            <div class="row"><label>Описание</label><textarea id="desc" rows="4" placeholder="Расскажите подробнее..."></textarea></div>
             <div class="row"><label>Фото (до 2 МБ)</label><input id="photo" type="file" accept="image/*"><img id="preview" class="thumb" style="display:none;"></div>
 
-            <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:24px;">
-                <button id="cancel" class="btn-ghost">Отмена</button>
-                <button id="save" class="btn-primary">Сохранить Отчёт</button>
+            <div style="display:flex;gap:16px;justify-content:flex-end;margin-top:32px;">
+                <button id="cancel" class="btn btn-ghost">Отмена</button>
+                <button id="save" class="btn btn-primary">Сохранить</button>
             </div>
         </div>
     </div>
@@ -126,12 +171,12 @@
         const col = collection(db, "reports");
 
         const map = L.map('map').setView([43.25, 76.95], 12);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: '© OpenStreetMap'}).addTo(map);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: ''}).addTo(map);
         const markers = L.layerGroup().addTo(map);
-        setTimeout(() => map.invalidateSize(), 200);
+        setTimeout(() => map.invalidateSize(), 300);
 
-        const openIcon = L.divIcon({html:'<i class="fa fa-trash" style="color:#d32f2f;font-size:28px;"></i>', iconSize:[30,30], iconAnchor:[15,30]});
-        const cleanIcon = L.divIcon({html:'<i class="fa fa-check-circle" style="color:#4caf50;font-size:28px;"></i>', iconSize:[30,30], iconAnchor:[15,30]});
+        const openIcon = L.divIcon({html:'<i class="fa-solid fa-dumpster-fire" style="color:#e74c3c;font-size:32px;"></i>', iconSize:[40,40], iconAnchor:[20,40]});
+        const cleanIcon = L.divIcon({html:'<i class="fa-solid fa-seedling" style="color:#27ae60;font-size:32px;"></i>', iconSize:[40,40], iconAnchor:[20,40]});
 
         const sidebar = document.getElementById('sidebar');
         const list = document.getElementById('list');
@@ -142,36 +187,36 @@
         let reports = [];
 
         onSnapshot(query(col, orderBy('created','desc')), snap => {
-            reports = snap.docs.map(d => ({id: d.id, ...d.data()}));
+            reports = snap.docs.map(d => ({id:d.id, ...d.data()}));
             render();
         });
 
         function render() {
-            markers.clearLayers(); list.innerHTML = reports.length ? '' : '<p style="text-align:center;color:#888;margin:40px 0;">Нет отчётов</p>';
+            markers.clearLayers(); list.innerHTML = reports.length ? '' : '<p style="text-align:center;color:rgba(255,255,255,0.7);margin:60px 0;font-size:18px;">Пока нет отчётов<br>Будьте первым!</p>';
             document.getElementById('exportBtn').disabled = document.getElementById('clearBtn').disabled = !reports.length;
 
             reports.forEach(r => {
                 const date = r.created ? new Date(r.created.seconds*1000) : new Date();
                 const div = document.createElement('div');
-                div.style = 'background:white;padding:16px;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.08);margin-bottom:16px;';
+                div.style = 'background:rgba(255,255,255,0.15);backdrop-filter:blur(20px);padding:20px;border-radius:20px;margin-bottom:20px;border:1px solid rgba(255,255,255,0.2);';
                 div.innerHTML = `
-                    <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <strong style="font-size:17px;">${r.title||'Без названия'}</strong>
-                        <span style="padding:4px 10px;border-radius:20px;font-size:12px;font-weight:bold;background:${r.cleaned?'#e8f5e9':'#ffebee'};color:${r.cleaned?'#28a745':'#dc3545'};">${r.cleaned?'Убрано':'Открыто'}</span>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                        <strong style="font-size:18px;color:white;">${r.title||'Без названия'}</strong>
+                        <span style="padding:6px 14px;border-radius:30px;font-size:13px;font-weight:700;background:${r.cleaned?'rgba(39,174,96,0.3)':'rgba(231,76,60,0.3)'};color:white;border:1px solid ${r.cleaned?'#27ae60':'#e74c3c'};">${r.cleaned?'Убрано':'Открыто'}</span>
                     </div>
-                    <div style="font-size:13px;color:#666;margin:8px 0;">${date.toLocaleString('ru').slice(0,-3)} • ${r.lat.toFixed(5)}, ${r.lng.toFixed(5)}</div>
-                    ${r.description ? `<p style="margin:8px 0;">${r.description}</p>` : ''}
-                    ${r.photo ? `<img src="${r.photo}" class="thumb">` : ''}
-                    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
-                        <button class="small" data-id="${r.id}" data-act="go">На карту</button>
-                        <button class="small btn-ghost" data-id="${r.id}" data-act="toggle">${r.cleaned?'Отменить':'Убрано'}</button>
-                        <button class="small btn-ghost" style="color:#dc3545;" data-id="${r.id}" data-act="del">Удалить</button>
+                    <div style="color:rgba(255,255,255,0.8);font-size:14px;margin-bottom:12px;">${date.toLocaleString('ru').slice(0,-3)} • ${r.lat.toFixed(5)}, ${r.lng.toFixed(5)}</div>
+                    ${r.description ? `<p style="color:rgba(255,255,255,0.9);margin-bottom:12px;">${r.description}</p>` : ''}
+                    ${r.photo ? `<img src="${r.photo}" style="width:100%;border-radius:16px;margin-bottom:12px;">` : ''}
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                        <button class="btn-ghost" style="padding:10px 16px;font-size:14px;" data-id="${r.id}" data-act="go">На карте</button>
+                        <button class="btn-ghost" style="padding:10px 16px;font-size:14px;" data-id="${r.id}" data-act="toggle">${r.cleaned?'Отменить':'Убрано'}</button>
+                        <button class="btn-ghost" style="padding:10px 16px;font-size:14px;color:#e74c3c;" data-id="${r.id}" data-act="del">Удалить</button>
                     </div>
                 `;
                 list.appendChild(div);
 
                 L.marker([r.lat, r.lng], {icon: r.cleaned?cleanIcon:openIcon}).addTo(markers)
-                 .bindPopup(`<b>${r.title||'Без названия'}</b><br>${r.description||''}${r.photo?`<img src="${r.photo}" style="width:100%;margin-top:8px;border-radius:8px;">`:''}`, {maxWidth:320});
+                 .bindPopup(`<div style="padding:8px;"><b style="font-size:16px;">${r.title||'Без названия'}</b><br><small>${r.description||''}</small>${r.photo?`<img src="${r.photo}" style="width:100%;margin-top:8px;border-radius:12px;">`:''}</div>`, {maxWidth:300});
             });
         }
 
@@ -208,13 +253,12 @@
 
         document.getElementById('save').onclick = async () => {
             const title = document.getElementById('title').value.trim();
-            if (!title) return errorDiv.textContent = 'Заголовок обязателен!';
+            if (!title) return errorDiv.textContent = 'Введите заголовок!';
 
             const saveBtn = document.getElementById('save');
             saveBtn.disabled = true;
             saveBtn.textContent = 'Сохранение...';
             loading.style.display = 'flex';
-            errorDiv.textContent = '';
 
             try {
                 let url = null;
@@ -234,7 +278,7 @@
                 });
                 overlay.style.display = 'none';
             } catch (err) {
-                errorDiv.textContent = 'Ошибка: ' + (err.message || 'проверьте правила Firebase');
+                errorDiv.textContent = 'Ошибка: ' + err.message;
             } finally {
                 saveBtn.disabled = false;
                 saveBtn.textContent = 'Сохранить Отчёт';
@@ -250,15 +294,15 @@
             try {
                 if (b.dataset.act === 'go') map.setView([reports.find(r=>r.id===id).lat, reports.find(r=>r.id===id).lng], 17);
                 if (b.dataset.act === 'toggle') await updateDoc(doc(db,'reports',id),{cleaned:!reports.find(r=>r.id===id).cleaned});
-                if (b.dataset.act === 'del' && confirm('Удалить?')) await deleteDoc(doc(db,'reports',id));
+                if (b.dataset.act === 'del' && confirm('Удалить отчёт?')) await deleteDoc(doc(db,'reports',id));
             } catch(err) {alert(err.message);}
             b.disabled = false;
         };
 
         document.getElementById('exportBtn').onclick = () => {
-            const data = reports.map(r=>({...r, created: r.created?.toDate?.().toISOString()||null}));
+            const data = reports.map(r=>({...r, created:r.created?.toDate?.().toISOString()||null}));
             const a = document.createElement('a');
-            a.href = URL.createObjectURL(new Blob([JSON.stringify(data,null,2)], {type:'application/json'}));
+            a.href = URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
             a.download = `ecomap_${new Date().toISOString().slice(0,10)}.json`;
             a.click();
         };
@@ -273,7 +317,7 @@
                 const batch = writeBatch(db);
                 snap.docs.forEach(d => batch.delete(d.ref));
                 await batch.commit();
-            } catch(err) {alert('Ошибка очистки: '+err.message);}
+            } catch(err) {alert('Ошибка: '+err.message);}
             document.getElementById('confirmYes').disabled = false;
         };
 
