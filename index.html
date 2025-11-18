@@ -168,6 +168,15 @@
             display: none; flex-direction: column; justify-content: center; align-items: center;
             padding: 20px; text-align: center;
         }
+        .row label { display: block; margin-bottom: 6px; font-weight: 600; color: #333; }
+        .row input, .row textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+        .row input:disabled { background:#f8f9fa; }
     </style>
 </head>
 <body>
@@ -501,9 +510,16 @@
                 const d = descInput.value.trim();
                 let photoURL = null;
                 if (currentPhotoData) {
-                    const storageRef = ref(storage, `photos/${Date.now()}.jpg`);
-                    await uploadString(storageRef, currentPhotoData, 'data_url');
-                    photoURL = await getDownloadURL(storageRef);
+                    try {
+                        const storageRef = ref(storage, `photos/${Date.now()}.jpg`);
+                        await uploadString(storageRef, currentPhotoData, 'data_url');
+                        photoURL = await getDownloadURL(storageRef);
+                    } catch (error) {
+                        modalErrorContainer.innerHTML = '<div class="error-message">Ошибка загрузки фото: ' + error.message + '</div>';
+                        saveBtn.disabled = false;
+                        saveBtn.textContent = 'Сохранить Отчёт';
+                        return;
+                    }
                 }
                 const item = {
                     title: t,
