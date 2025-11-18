@@ -19,7 +19,14 @@
             --text-color: #333;
             --shadow-light: 0 4px 12px rgba(0,0,0,0.1);
         }
-        body { font-family: 'Inter', system-ui, Arial, sans-serif; margin:0; display:flex; height:100vh; color: var(--text-color); }
+        body { 
+            font-family: 'Inter', system-ui, Arial, sans-serif; 
+            margin:0; 
+            display:flex; 
+            height:100vh; 
+            color: var(--text-color); 
+            overflow: hidden; 
+        }
         
         #map { 
             flex:1; 
@@ -27,7 +34,7 @@
             z-index: 1; 
         }
         
-        /* --- Sidebar & Adaptivity Styles --- */
+        /* --- Sidebar --- */
         .sidebar { 
             width: 380px; 
             min-width: 320px; 
@@ -39,7 +46,8 @@
             display:flex; 
             flex-direction:column;
             position: relative;
-            z-index: 100; /* Выше карты */
+            z-index: 100;
+            box-sizing: border-box;
         }
         
         h1 { font-size:24px; margin:0 0 12px; color:var(--primary-color); }
@@ -62,7 +70,7 @@
         .thematic-content h3 { color: var(--primary-color); margin-top: 0; font-size: 1.3em; }
         .thematic-image {
             width: 100%; height: 150px; background-color: #e9f3ff;
-            background-image: url('https://picsum.photos/400/150?random=1');
+            background-image: url('https://picsum.photos/400/150?grayscale&blur=2&random=1');
             background-size: cover; background-position: center;
             border-radius: 10px; margin-bottom: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.05);
         }
@@ -70,7 +78,7 @@
         /* Mobile Menu Button */
         #menuToggle {
             position: absolute; top: 15px; right: 15px;
-            z-index: 1001; /* Выше всего */
+            z-index: 1001; 
             padding: 10px 15px; border-radius: 50%;
             background: rgba(0, 123, 255, 0.8); color: white;
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
@@ -82,7 +90,7 @@
             position:fixed; inset:0; display:none; 
             align-items:center; justify-content:center; 
             background:rgba(0,0,0,0.5); 
-            z-index: 1002; /* Выше всего */
+            z-index: 1002;
             overflow-y: auto; 
         }
         .card { 
@@ -104,27 +112,26 @@
             background: var(--primary-color); color: white;
             padding: 8px 15px; border-radius: 8px;
             box-shadow: var(--shadow-light); font-size: 14px;
-            z-index: 999; 
+            z-index: 999;
             display: none; white-space: nowrap; 
         }
 
-        
+        /* --- Mobile Adaptivity (Sidebar Overlay) --- */
         @media (max-width: 768px) {
-            
             .sidebar {
                 position: fixed; top: 0; right: 0;
                 width: 100%; 
-                max-width: 320px; /* Ограничиваем ширину для лучшего вида */
+                max-width: 320px; 
                 height: 100%;
-                box-shadow: -4px 0 16px rgba(0,0,0,0.2); /* Улучшенная тень */
-                transform: translateX(100%); /* Спрятать за экраном */
+                box-shadow: -4px 0 16px rgba(0,0,0,0.2);
+                transform: translateX(100%);
                 transition: transform 0.3s ease-in-out;
             }
             .sidebar.active { 
-                transform: translateX(0); /* Показать */
+                transform: translateX(0);
             }
             #menuToggle { 
-                display: block; /* Показать кнопку меню */
+                display: block;
             }
             #addModeMessage { 
                 width: 80%; 
@@ -170,8 +177,7 @@
             <h3>🌱 Наша миссия</h3>
             <div class="thematic-image" style="background-image: url('https://picsum.photos/400/150?grayscale&blur=2&random=1');"></div>
             <p>EcoMap создан для того, чтобы дать гражданам возможность участвовать в сохранении чистоты. Отмечая проблемные зоны, мы коллективно создаем карту, которая помогает волонтерам и местным властям эффективно планировать уборку.</p>
-            <p>Ваш отчёт – это первый шаг к чистой планете!</p>
-            <p class="meta" style="margin-top:10px;">Проект создан для демонстрации навыков.</p>
+            <p class="meta" style="margin-top:10px;">Проект создан для демонстрации навыков: Leaflet, Адаптивный дизайн, Firebase.</p>
         </div>
     
     </div>
@@ -205,7 +211,54 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script> 
     <script>
+        // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyBchhpXlXNukYDgQHlRD0qPfQ2jvf8hsS8",
+  authDomain: "ecomap-22dc4.firebaseapp.com",
+  projectId: "ecomap-22dc4",
+  storageBucket: "ecomap-22dc4.firebasestorage.app",
+  messagingSenderId: "88803528674",
+  appId: "1:88803528674:web:d33c8ddacccf2286be33bb",
+  measurementId: "G-TLWK0JBH6R"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);// ========================================================
+        // 💥💥💥 ВСТАВЬТЕ СЮДА ВАШ КОНФИГУРАЦИОННЫЙ КОД FIREBASE! 💥💥💥
+        // Выглядит так: const firebaseConfig = { apiKey: "...", authDomain: "..." };
+        const firebaseConfig = {
+          apiKey: "ВАШ_API_КЛЮЧ", 
+          authDomain: "ВАШ_ПРОЕКТ.firebaseapp.com",
+          projectId: "ВАШ_ID_ПРОЕКТА",
+          storageBucket: "ВАШ_BUCKET", 
+          messagingSenderId: "ВАШ_SENDER_ID",
+          appId: "ВАШ_APP_ID"
+        };
+        // ---------------------------------------------------------------------
+        
+        // --- Инициализация ---
+        if (typeof firebase === 'undefined' || typeof firebase.firestore === 'undefined') {
+             alert('Ошибка: Библиотеки Firebase не загружены. Проверьте подключение CDN внизу body.');
+        } else {
+             firebase.initializeApp(firebaseConfig);
+        }
+        
+        const db = firebase.firestore();
+        const reportsCollection = db.collection("reports"); // Название коллекции в БД
+        let reports = []; 
+        // ========================================================
+        
         document.addEventListener('DOMContentLoaded', () => {
             
             // --- Инициализация элементов ---
@@ -221,14 +274,21 @@
             const exportBtn = document.getElementById('exportBtn');
             const clearBtn = document.getElementById('clearBtn');
             
+            // Проверка наличия Leaflet
             if (typeof L === 'undefined') {
                 console.error('Leaflet library failed to load.');
-                alert('Ошибка: Библиотека карты (Leaflet) не загружена.');
                 return;
             }
             
-            // ... (Код иконок, карты, renderReports... все без изменений) ...
-            
+            // --- Инициализация карты ---
+            const map = L.map('map').setView([43.25, 76.95], 12);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            const markers = L.layerGroup().addTo(map);
+
             const createCustomIcon = (className, content) => new L.DivIcon({
                 className: className,
                 html: content,
@@ -237,33 +297,33 @@
             });
             const iconOpen = createCustomIcon('marker-icon-open', '<i class="fa fa-trash"></i>');
             const iconCleaned = createCustomIcon('marker-icon-clean', '<i class="fa fa-check"></i>');
-            
-            const map = L.map('map').setView([43.25, 76.95], 12);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(map);
-
-            const STORAGE_KEY = 'ecomap_reports_v2';
-            let reports = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-            const markers = L.layerGroup().addTo(map);
 
             function escapeHtml(s='') { return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;'); }
 
+            // *** ФУНКЦИЯ: РЕНДЕР ИЗ МАССИВА ***
             function renderReports() {
                 markers.clearLayers();
                 const list = reportsList;
                 list.innerHTML = '';
                 
-                reports.forEach((r, i) => {
+                // Сортировка по дате создания (новые сверху)
+                reports.sort((a, b) => (b.created ? b.created.toMillis() : 0) - (a.created ? a.created.toMillis() : 0));
+
+                reports.forEach((r) => {
                     const el = document.createElement('div');
                     el.className = 'report';
+                    
+                    // Форматирование даты
+                    const date = r.created && r.created.toDate ? r.created.toDate() : new Date();
+                    const dateStr = date.toLocaleDateString();
+                    const timeStr = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
                     el.innerHTML = `
                         <div style="display:flex;justify-content:space-between;align-items:center;">
                             <strong>${escapeHtml(r.title || 'Без названия')}</strong>
                             <span class="${r.cleaned ? 'status-clean' : 'status-open'}">${r.cleaned ? 'Убрано' : 'Открыто'}</span>
                         </div>
-                        <div class="meta">${new Date(r.created).toLocaleDateString()} ${new Date(r.created).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} • ${r.lat.toFixed(5)}, ${r.lng.toFixed(5)}</div>
+                        <div class="meta">${dateStr} ${timeStr} • ${r.lat.toFixed(5)}, ${r.lng.toFixed(5)}</div>
                         <div>${escapeHtml(r.description || 'Нет описания')}</div>
                     `;
                     if (r.photo) {
@@ -277,10 +337,11 @@
                     actions.style.marginTop = '10px';
                     actions.style.display = 'flex';
                     actions.style.gap = '8px';
+                    // Передаем уникальный ID документа (r.docId)
                     actions.innerHTML = `
-                        <button class="small" data-idx="${i}" data-action="goto">Перейти</button>
-                        <button class="small btn-ghost" data-idx="${i}" data-action="toggle">${r.cleaned ? 'Отменить Уборку' : 'Отметить как Убрано'}</button>
-                        <button class="small btn-ghost" data-idx="${i}" data-action="delete" style="color:var(--danger-color);border-color:#f8d7da;">Удалить</button>
+                        <button class="small" data-doc-id="${r.docId}" data-action="goto">Перейти</button>
+                        <button class="small btn-ghost" data-doc-id="${r.docId}" data-action="toggle">${r.cleaned ? 'Отменить Уборку' : 'Отметить как Убрано'}</button>
+                        <button class="small btn-ghost" data-doc-id="${r.docId}" data-action="delete" style="color:var(--danger-color);border-color:#f8d7da;">Удалить</button>
                     `;
                     el.appendChild(actions);
                     list.appendChild(el);
@@ -295,6 +356,24 @@
                 });
             }
 
+            // *** ФУНКЦИЯ: ЗАГРУЗКА И СЛУШАТЕЛЬ (ОНЛАЙН) ***
+            function subscribeToReports() {
+                // Создаем слушатель, который автоматически обновляет данные при любом изменении в БД
+                reportsCollection.orderBy('created', 'desc').onSnapshot((snapshot) => {
+                    const newReports = [];
+                    snapshot.forEach((doc) => {
+                        // Добавляем ID документа (docId) к данным
+                        newReports.push({ docId: doc.id, ...doc.data() });
+                    });
+                    reports = newReports;
+                    renderReports();
+                }, (error) => {
+                    console.error("Ошибка при получении данных: ", error);
+                    alert("Не удалось загрузить данные из базы.");
+                });
+            }
+
+            // --- Логика добавления точки ---
             let addingMode = false;
             const addModeMessage = document.getElementById('addModeMessage');
             
@@ -310,22 +389,17 @@
                 }
             });
 
-            
-            
+            // --- ОБРАБОТЧИКИ ---
             menuToggleBtn.addEventListener('click', () => {
                 sidebar.classList.toggle('active');
             });
             
-            
             addPointBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 toggleAddingMode(true);
-                
-                
                 if (sidebar.classList.contains('active')) {
                     sidebar.classList.remove('active');
                 }
-               
             });
             
             cancelAddModeBtn.addEventListener('click', (e) => {
@@ -333,8 +407,7 @@
                 toggleAddingMode(false);
             });
 
-           
-            
+            // --- Модальное окно и форма ---
             const coordsInput = document.getElementById('coords');
             const titleInput = document.getElementById('titleInput');
             const descInput = document.getElementById('descInput');
@@ -381,7 +454,8 @@
                 reader.readAsDataURL(file);
             });
 
-            saveBtn.addEventListener('click', () => {
+            // *** ФУНКЦИЯ СОХРАНЕНИЯ (ONLINE) ***
+            saveBtn.addEventListener('click', async () => {
                 const t = titleInput.value.trim();
                 if (!t) {
                     alert('Пожалуйста, укажите заголовок!');
@@ -391,31 +465,33 @@
 
                 const d = descInput.value.trim();
                 const item = {
-                    id: Date.now(),
                     title: t,
                     description: d,
                     lat: currentLatLng.lat,
                     lng: currentLatLng.lng,
                     photo: currentPhotoData || null,
                     cleaned: false,
-                    created: Date.now()
+                    // Используем время сервера
+                    created: firebase.firestore.FieldValue.serverTimestamp()
                 };
-                reports.unshift(item);
-                persist();
-                renderReports();
-                overlay.style.display = 'none';
+                
+                try {
+                    await reportsCollection.add(item);
+                    overlay.style.display = 'none';
+                    // subscribeToReports автоматически обновит карту
+                } catch (error) {
+                    console.error("Ошибка при добавлении документа: ", error);
+                    alert("Не удалось сохранить отчёт в базу.");
+                }
             });
 
-            function persist() {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(reports));
-            }
-
-            reportsList.addEventListener('click', (ev) => {
+            // list actions (delegation)
+            reportsList.addEventListener('click', async (ev) => {
                 const btn = ev.target.closest('button');
                 if (!btn) return;
-                const idx = Number(btn.dataset.idx);
+                const docId = btn.dataset.docId;
                 const action = btn.dataset.action;
-                const r = reports[idx];
+                const r = reports.find(rep => rep.docId === docId);
                 if (!r) return;
 
                 if (action === 'goto') {
@@ -424,38 +500,36 @@
                         sidebar.classList.remove('active');
                     }
                 } else if (action === 'toggle') {
-                    reports[idx].cleaned = !reports[idx].cleaned;
-                    persist();
-                    renderReports();
+                    // *** ОБНОВЛЕНИЕ В FIREBASE ***
+                    const newCleanedStatus = !r.cleaned;
+                    try {
+                        await reportsCollection.doc(docId).update({ cleaned: newCleanedStatus });
+                    } catch (error) {
+                         console.error("Ошибка при обновлении статуса: ", error);
+                         alert("Ошибка при обновлении статуса в базе.");
+                    }
                 } else if (action === 'delete') {
                     if (!confirm(`Вы действительно хотите удалить отчёт "${r.title}"?`)) return;
-                    reports.splice(idx,1);
-                    persist();
-                    renderReports();
+                    // *** УДАЛЕНИЕ В FIREBASE ***
+                    try {
+                        await reportsCollection.doc(docId).delete();
+                    } catch (error) {
+                        console.error("Ошибка при удалении документа: ", error);
+                        alert("Ошибка при удалении отчёта из базы.");
+                    }
                 }
             });
 
+            // Export / Clear (Отключены или изменены для работы с облаком)
             exportBtn.addEventListener('click', () => {
-                if (reports.length === 0) {
-                    alert('Нет данных для экспорта.');
-                    return;
-                }
-                const data = JSON.stringify(reports, null, 2);
-                const blob = new Blob([data], {type:'application/json'});
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url; a.download = 'ecomap_reports.json'; a.click();
-                URL.revokeObjectURL(url);
+                alert("Экспорт отключен. Данные хранятся в Firebase.");
             });
-            clearBtn.addEventListener('click', () => {
-                if (!confirm('Вы уверены? Это удалит ВСЕ сохранённые отчёты!')) return;
-                reports = [];
-                persist();
-                renderReports();
+            clearBtn.addEventListener('click', async () => {
+                alert('Для полной очистки базы данных "reports" воспользуйтесь консолью Firebase.');
             });
 
-     
-            renderReports();
+            // ПЕРВЫЙ ЗАПУСК: Начинаем слушать базу данных
+            subscribeToReports();
         });
     </script>
 </body>
