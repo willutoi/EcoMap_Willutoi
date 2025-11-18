@@ -499,12 +499,18 @@
                 saveBtn.textContent = 'Сохранение...';
                 modalErrorContainer.innerHTML = '';
                 const d = descInput.value.trim();
+                let photoURL = null;
+                if (currentPhotoData) {
+                    const storageRef = ref(storage, `photos/${Date.now()}.jpg`);
+                    await uploadString(storageRef, currentPhotoData, 'data_url');
+                    photoURL = await getDownloadURL(storageRef);
+                }
                 const item = {
                     title: t,
                     description: d,
                     lat: currentLatLng.lat,
                     lng: currentLatLng.lng,
-                    photo: currentPhotoData || null,
+                    photo: photoURL || null,
                     cleaned: false,
                     created: serverTimestamp()
                 };
