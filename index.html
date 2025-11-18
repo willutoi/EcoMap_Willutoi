@@ -120,6 +120,7 @@
             max-width: 480px;
             padding: 24px;
             box-shadow: var(--shadow);
+            position: relative;
         }
         .modal h3 { margin-bottom: 16px; color: var(--primary); }
         .form-group { margin-bottom: 16px; }
@@ -147,8 +148,27 @@
             box-shadow: var(--shadow);
         }
 
-        .marker-icon-open i { color: #d32f2f; font-size: 24px; }
-        .marker-icon-clean i { color: #4caf50; font-size: 24px; }
+        .loading {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            display: none;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .marker-icon-open i { color: #d32f2f; font-size: 28px; text-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        .marker-icon-clean i { color: #4caf50; font-size: 28px; text-shadow: 0 1px 3px rgba(0,0,0,0.2); }
     </style>
 </head>
 <body>
@@ -158,42 +178,43 @@
     <button id="menuToggle"><i class="fas fa-bars"></i></button>
 
     <div id="addModeHint">
-        Кликните по карте, чтобы добавить точку <a href="#" id="cancelAdd" style="color:#ffeb3b;margin-left:10px;">Отмена</a>
+        Кликните по карте для добавления <a href="#" id="cancelAdd" style="color:#ffeb3b;margin-left:10px;">Отмена</a>
     </div>
 
     <div class="sidebar" id="sidebar">
-        <h1>EcoMap</h1>
-        <p class="meta">Сообщения жителей о свалках и загрязнениях</p>
+        <h1>EcoMap <i class="fas fa-leaf" style="color:var(--success);"></i></h1>
+        <p class="meta">Отчёты о местах загрязнений от жителей</p>
 
         <div class="btn-group">
-            <button class="btn btn-primary" id="addBtn">Сообщить о точке</button>
+            <button class="btn btn-primary" id="addBtn"><i class="fas fa-plus"></i> Добавить точку</button>
             <button class="btn btn-secondary" id="exportBtn" disabled>Export JSON</button>
             <button class="btn btn-secondary" id="clearBtn" disabled>Clear All</button>
         </div>
 
         <div id="confirmBox" style="display:none;background:#fff3cd;padding:15px;border-radius:10px;margin:15px 0;border:1px solid #ffeaa7;">
-            <strong>Удалить все отчёты?</strong><br><br>
-            <button class="btn btn-danger" id="confirmYes">Да, удалить</button>
-            <button class="btn btn-secondary" id="confirmNo">Отмена</button>
+            <strong>Удалить все отчёты навсегда?</strong><br><br>
+            <button class="btn btn-danger" id="confirmYes">Да</button>
+            <button class="btn btn-secondary" id="confirmNo">Нет</button>
         </div>
 
         <div id="list"></div>
 
         <div style="margin-top:40px;padding-top:20px;border-top:1px solid #eee;">
-            <h3>Наша миссия</h3>
+            <h3><i class="fas fa-globe"></i> Миссия</h3>
             <p style="font-size:14px;line-height:1.6;margin-top:10px;">
-                EcoMap помогает жителям отмечать проблемные места. Вместе мы делаем город чище!
+                Помогаем делать мир чище. Отмечайте проблемы — волонтёры убирают!
             </p>
             <p class="meta" style="margin-top:15px;font-size:13px;">
-                Leaflet • Firebase • Адаптивный дизайн
+                Технологии: Leaflet, Firebase, Responsive UI
             </p>
         </div>
     </div>
 
     <div class="overlay" id="overlay">
         <div class="modal">
-            <h3>Новое место загрязнения</h3>
-            <div id="error" style="color:var(--danger);margin-bottom:10px;"></div>
+            <div class="loading" id="modalLoading"><div class="spinner"></div></div>
+            <h3>Новый отчёт</h3>
+            <div id="error" style="color:var(--danger);margin-bottom:10px;font-weight:600;"></div>
 
             <div class="form-group">
                 <label>Координаты</label>
@@ -201,14 +222,14 @@
             </div>
             <div class="form-group">
                 <label>Заголовок *</label>
-                <input type="text" id="title" placeholder="Например: Свалка у реки">
+                <input type="text" id="title" placeholder="Свалка мусора у реки">
             </div>
             <div class="form-group">
                 <label>Описание</label>
-                <textarea id="desc" rows="3" placeholder="Что здесь? Какой мусор?"></textarea>
+                <textarea id="desc" rows="4" placeholder="Подробности: тип мусора, размер зоны..."></textarea>
             </div>
             <div class="form-group">
-                <label>Фото (не обязательно)</label>
+                <label>Фото (max 3MB)</label>
                 <input type="file" id="photo" accept="image/*">
                 <img id="preview" style="display:none;width:100%;margin-top:10px;border-radius:8px;max-height:200px;object-fit:cover;">
             </div>
@@ -222,24 +243,27 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <!-- Firebase v10 -->
+    <!-- Firebase v10 with Storage -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp, query, orderBy, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+        import { getStorage, ref, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js";
 
         const app = initializeApp({
             apiKey: "AIzaSyBchhpXlXNukYDgQHlRD0qPfQjvf8hsS8",
             authDomain: "ecomap-22dc4.firebaseapp.com",
             projectId: "ecomap-22dc4",
-            storageBucket: "ecomap-22dc4.firebasestorage.app",
+            storageBucket: "ecomap-22dc4.appspot.com",
             messagingSenderId: "88803528674",
             appId: "1:88803528674:web:d33c8ddacccf2286be33bb"
         });
 
         const db = getFirestore(app);
+        const storage = getStorage(app);
         const col = collection(db, "reports");
 
         window.db = db;
+        window.storage = storage;
         window.col = col;
         window.addDoc = addDoc;
         window.onSnapshot = onSnapshot;
@@ -251,6 +275,9 @@
         window.orderBy = orderBy;
         window.getDocs = getDocs;
         window.writeBatch = writeBatch;
+        window.ref = ref;
+        window.uploadString = uploadString;
+        window.getDownloadURL = getDownloadURL;
     </script>
 
     <script>
@@ -260,12 +287,13 @@
         }).addTo(map);
 
         const markers = L.layerGroup().addTo(map);
-        const openIcon = L.divIcon({className: "marker-icon-open", html: '<i class="fas fa-trash"></i>', iconSize: [30,30]});
-        const cleanIcon = L.divIcon({className: "marker-icon-clean", html: '<i class="fas fa-check-circle"></i>', iconSize: [30,30]});
+        const openIcon = L.divIcon({className: "marker-icon-open", html: '<i class="fas fa-trash-alt"></i>', iconSize: [30,30], iconAnchor: [15,30]});
+        const cleanIcon = L.divIcon({className: "marker-icon-clean", html: '<i class="fas fa-check-circle"></i>', iconSize: [30,30], iconAnchor: [15,30]});
 
         const sidebar = document.getElementById('sidebar');
         const list = document.getElementById('list');
         const overlay = document.getElementById('overlay');
+        const modalLoading = document.getElementById('modalLoading');
         const addBtn = document.getElementById('addBtn');
         const exportBtn = document.getElementById('exportBtn');
         const clearBtn = document.getElementById('clearBtn');
@@ -274,62 +302,70 @@
         let adding = false;
         let reports = [];
 
-        // Подписка
+        // Подписка на данные
         onSnapshot(query(col, orderBy("created", "desc")), snap => {
             reports = snap.docs.map(d => ({id: d.id, ...d.data()}));
             render();
+        }, err => {
+            console.error('Firestore error:', err);
+            list.innerHTML = `<div style="color:var(--danger);padding:15px;background:#ffebee;border-radius:8px;">Ошибка загрузки: ${err.message}. Проверьте правила Firebase.</div>`;
         });
 
         function render() {
             markers.clearLayers();
             list.innerHTML = reports.length === 0
-                ? '<p style="text-align:center;color:#888;margin:30px 0;">Нет отчётов. Будьте первыми!</p>'
+                ? '<p style="text-align:center;color:#888;margin:30px 0;">Нет отчётов</p>'
                 : '';
 
             exportBtn.disabled = clearBtn.disabled = reports.length === 0;
 
             reports.forEach(r => {
-                const date = r.created?.toDate?.() || new Date();
+                const date = r.created ? new Date(r.created.seconds * 1000) : new Date();
                 const div = document.createElement('div');
                 div.className = 'report';
                 div.innerHTML = `
                     <h3>${escape(r.title || 'Без названия')}</h3>
                     <div class="meta">
                         ${date.toLocaleString('ru')} • ${r.lat.toFixed(5)}, ${r.lng.toFixed(5)}
-                        <span class="status ${r.cleaned ? 'cleaned' : 'open'}">${r.cleaned ? 'Убрано' : 'Требует уборки'}</span>
+                        <span class="status ${r.cleaned ? 'cleaned' : 'open'}">${r.cleaned ? 'Убрано' : 'Открыто'}</span>
                     </div>
                     ${r.description ? `<p>${escape(r.description)}</p>` : ''}
-                    ${r.photo ? `<img src="${r.photo}" alt="Фото">` : ''}
+                    ${r.photo ? `<img src="${r.photo}" alt="Фото" loading="lazy">` : ''}
                     <div class="actions">
-                        <button class="btn btn-secondary btn-small" data-id="${r.id}" data-act="go">На карте</button>
-                        <button class="btn ${r.cleaned ? 'btn-secondary' : 'btn-success'} btn-small" data-id="${r.id}" data-act="toggle">
+                        <button class="btn btn-secondary" data-id="${r.id}" data-act="go">На карту</button>
+                        <button class="btn ${r.cleaned ? 'btn-secondary' : 'btn-success'} " data-id="${r.id}" data-act="toggle">
                             ${r.cleaned ? 'Отменить' : 'Убрано'}
                         </button>
-                        <button class="btn btn-secondary btn-small" style="color:var(--danger)" data-id="${r.id}" data-act="del">Удалить</button>
+                        <button class="btn btn-secondary" style="color:var(--danger);border-color:var(--danger);" data-id="${r.id}" data-act="del">Удалить</button>
                     </div>
                 `;
                 list.appendChild(div);
 
                 const marker = L.marker([r.lat, r.lng], {icon: r.cleaned ? cleanIcon : openIcon}).addTo(markers);
-                marker.bindPopup(`<b>${escape(r.title)}</b><br>${r.description || ''}${r.photo ? `<br><img src="${r.photo}" style="width:100%;margin-top:8px;border-radius:8px;">` : ''}`);
+                marker.bindPopup(`<b>${escape(r.title)}</b><p>${escape(r.description || '')}</p>${r.photo ? `<img src="${r.photo}" style="width:100%;border-radius:6px;margin-top:5px;">` : ''}`, {maxWidth: 300});
             });
         }
 
-        function escape(s) { return String(s || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]); }
+        function escape(s) { return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]); }
 
-        // Добавление
+        // Добавление точки
         addBtn.onclick = () => {
             adding = true;
             document.getElementById('addModeHint').style.display = 'block';
             map.getContainer().style.cursor = 'crosshair';
+            if (window.innerWidth <= 768) sidebar.classList.remove('active');
         };
-        document.getElementById('cancelAdd').onclick = e => { e.preventDefault(); adding = false; document.getElementById('addModeHint').style.display = 'none'; map.getContainer().style.cursor = ''; };
+        document.getElementById('cancelAdd').onclick = e => { e.preventDefault(); resetAdding(); };
 
-        map.on('click', e => {
-            if (!adding) return;
+        function resetAdding() {
             adding = false;
             document.getElementById('addModeHint').style.display = 'none';
             map.getContainer().style.cursor = '';
+        }
+
+        map.on('click', e => {
+            if (!adding) return;
+            resetAdding();
 
             document.getElementById('coords').value = `${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
             document.getElementById('title').value = '';
@@ -339,6 +375,7 @@
             document.getElementById('error').textContent = '';
             overlay.style.display = 'flex';
             window.currentPos = e.latlng;
+            window.currentPhoto = null;
         });
 
         document.getElementById('cancel').onclick = () => overlay.style.display = 'none';
@@ -347,7 +384,10 @@
         document.getElementById('photo').onchange = e => {
             const file = e.target.files[0];
             if (!file) return;
-            if (file.size > 3*1024*1024) return alert('Фото слишком большое (макс. 3МБ)');
+            if (file.size > 3*1024*1024) {
+                document.getElementById('error').textContent = 'Фото слишком большое (макс. 3MB)';
+                return;
+            }
             const reader = new FileReader();
             reader.onload = () => {
                 document.getElementById('preview').src = reader.result;
@@ -359,31 +399,43 @@
 
         document.getElementById('save').onclick = async () => {
             const title = document.getElementById('title').value.trim();
-            if (!title) return document.getElementById('error').textContent = 'Введите заголовок!';
+            if (!title) {
+                document.getElementById('error').textContent = 'Заголовок обязателен!';
+                return;
+            }
 
-            document.getElementById('save').disabled = true;
-            document.getElementById('save').textContent = 'Сохранение...';
+            const saveBtn = document.getElementById('save');
+            saveBtn.disabled = true;
+            modalLoading.style.display = 'flex';
 
             try {
+                let photoURL = null;
+                if (window.currentPhoto) {
+                    const storageRef = ref(storage, `photos/${Date.now()}.jpg`);
+                    await uploadString(storageRef, window.currentPhoto, 'data_url');
+                    photoURL = await getDownloadURL(storageRef);
+                }
+
                 await addDoc(col, {
                     title,
                     description: document.getElementById('desc').value.trim(),
                     lat: window.currentPos.lat,
                     lng: window.currentPos.lng,
-                    photo: window.currentPhoto || null,
+                    photo: photoURL,
                     cleaned: false,
                     created: serverTimestamp()
                 });
                 overlay.style.display = 'none';
             } catch (err) {
-                document.getElementById('error').textContent = 'Ошибка: ' + err.message;
+                document.getElementById('error').textContent = `Ошибка: ${err.message}. Проверьте правила Firebase (allow read/write) и консоль.`;
+                console.error(err);
             } finally {
-                document.getElementById('save').disabled = false;
-                document.getElementById('save').textContent = 'Сохранить';
+                saveBtn.disabled = false;
+                modalLoading.style.display = 'none';
             }
         };
 
-        // Действия
+        // Действия в отчётах
         list.onclick = async e => {
             const btn = e.target.closest('button');
             if (!btn) return;
@@ -391,37 +443,62 @@
             const act = btn.dataset.act;
             const r = reports.find(x => x.id === id);
 
-            if (act === 'go') map.setView([r.lat, r.lng], 17);
-            if (act === 'toggle') await updateDoc(doc(db, 'reports', id), {cleaned: !r.cleaned});
-            if (act === 'del' && confirm('Удалить отчёт?')) await deleteDoc(doc(db, 'reports', id));
+            btn.disabled = true;
+            try {
+                if (act === 'go') {
+                    map.setView([r.lat, r.lng], 17);
+                } else if (act === 'toggle') {
+                    await updateDoc(doc(db, 'reports', id), {cleaned: !r.cleaned});
+                } else if (act === 'del') {
+                    if (confirm('Удалить этот отчёт?')) {
+                        await deleteDoc(doc(db, 'reports', id));
+                    }
+                }
+            } catch (err) {
+                alert(`Ошибка: ${err.message}`);
+            } finally {
+                btn.disabled = false;
+            }
         };
 
-        // Export / Clear
+        // Export
         exportBtn.onclick = () => {
             const data = reports.map(r => ({
                 ...r,
-                created: r.created?.toDate?.().toISOString() || null
+                created: r.created ? new Date(r.created.seconds * 1000).toISOString() : null
             }));
             const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url; a.download = `ecomap_${new Date().toISOString().slice(0,10)}.json`;
+            a.href = url;
+            a.download = `ecomap_reports_${new Date().toISOString().slice(0,10)}.json`;
             a.click();
+            URL.revokeObjectURL(url);
         };
 
+        // Clear All
         clearBtn.onclick = () => confirmBox.style.display = 'block';
         document.getElementById('confirmNo').onclick = () => confirmBox.style.display = 'none';
         document.getElementById('confirmYes').onclick = async () => {
             confirmBox.style.display = 'none';
-            const snap = await getDocs(col);
-            const batch = writeBatch(db);
-            snap.docs.forEach(d => batch.delete(d.ref));
-            await batch.commit();
+            const confirmYes = document.getElementById('confirmYes');
+            confirmYes.disabled = true;
+            try {
+                const snap = await getDocs(col);
+                if (snap.empty) return;
+                const batch = writeBatch(db);
+                snap.docs.forEach(d => batch.delete(d.ref));
+                await batch.commit();
+            } catch (err) {
+                alert(`Ошибка очистки: ${err.message}`);
+            } finally {
+                confirmYes.disabled = false;
+            }
         };
 
         document.getElementById('menuToggle').onclick = () => sidebar.classList.toggle('active');
 
-        setTimeout(() => map.invalidateSize(), 300);
+        setTimeout(() => map.invalidateSize(), 100);
     </script>
 </body>
 </html>
