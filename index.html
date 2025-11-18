@@ -1,130 +1,246 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EcoMap — Отчёты о загрязнениях</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
-   
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <style>
         :root {
-            --primary-color: #007bff;
-            --secondary-color: #6c757d;
-            --success-color: #28a745;
-            --danger-color: #dc3545;
-            --bg-color: #f7f9fc;
-            --text-color: #333;
-            --shadow-light: 0 4px 12px rgba(0,0,0,0.1);
+            --primary: #007bff;
+            --success: #28a745;
+            --danger: #dc3545;
+            --gray: #6c757d;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --bg: #f7f9fc;
+            --radius: 12px;
+            --shadow: 0 4px 20px rgba(0,0,0,0.1);
         }
-        body {font-family: 'Inter', system-ui, Arial, sans-serif; margin:0; height:100vh; width:100vw; color:var(--text-color); overflow:hidden; position:relative;}
-        #map {position:fixed; top:0; right:0; bottom:0; left:0; z-index:1; background:#ccc;}
-        .sidebar {position:absolute; top:0; right:0; height:100%; width:380px; min-width:320px; max-width:400px; background:var(--bg-color); padding:16px; box-shadow:-4px 0 16px rgba(0,0,0,0.08); overflow-y:auto; display:flex; flex-direction:column; z-index:100; box-sizing:border-box; transition:transform .3s; transform:translateX(0);}
-        h1 {font-size:24px; margin:0 0 12px; color:var(--primary-color);}
-        .meta {font-size:13px; color:var(--secondary-color); margin-bottom:12px;}
-        .report {border:1px solid #e3e8ef; padding:12px; margin-bottom:10px; border-radius:10px; background:#fff; box-shadow:0 2px 4px rgba(0,0,0,0.05);}
-        button {padding:10px 14px; border-radius:8px; border:0; background:var(--primary-color); color:#fff; cursor:pointer; font-weight:600; transition:all .2s;}
-        button:hover:not(:disabled) {opacity:0.9; box-shadow:0 4px 8px rgba(0,123,255,0.3);}
-        button:disabled {background:#aaa; cursor:not-allowed;}
-        .btn-ghost {background:transparent; color:var(--primary-color); border:1px solid #cfe3ff;}
-        .small {font-size:13px; padding:8px 12px; font-weight:normal;}
-        .status-open {color:var(--danger-color); font-weight:600;}
-        .status-clean {color:var(--success-color); font-weight:600;}
-        .thumb {width:100%; max-height:160px; object-fit:cover; border-radius:8px; margin-top:8px; border:1px solid #eee;}
-        #menuToggle {position:absolute; top:15px; right:15px; z-index:1001; padding:10px 15px; border-radius:50%; background:rgba(0,123,255,0.8); color:white; box-shadow:0 4px 8px rgba(0,0,0,0.2); display:none;}
-        .overlay {position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.6); z-index:1002; overflow-y:auto;}
-        .card {background:white; padding:20px; border-radius:12px; width:450px; max-width:90%; box-shadow:var(--shadow-light); margin:20px auto; box-sizing:border-box;}
-        .map-adding-mode {cursor:crosshair !important;}
-        #addModeMessage {position:absolute; top:10px; left:50%; transform:translateX(-50%); background:var(--primary-color); color:white; padding:8px 15px; border-radius:8px; box-shadow:var(--shadow-light); font-size:14px; z-index:999; display:none; white-space:nowrap;}
-        #confirmationMessage {margin-top:10px; padding:10px; border-radius:8px; background:#ffcccc; border:1px solid var(--danger-color); color:#333; font-size:14px; display:none;}
-        #confirmationMessage button {background:var(--danger-color); margin-left:8px; padding:5px 10px;}
-        #confirmationMessage .btn-ghost {color:var(--danger-color); border-color:#ffcccc; background:#fff;}
-        .error-message {background:#f8d7da; color:#721c24; padding:10px; border-radius:8px; margin:10px 0;}
-        @media (max-width:768px) {
-            .sidebar {transform:translateX(100%);}
-            .sidebar.active {transform:translateX(0);}
-            #menuToggle {display:block;}
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background:var(--bg); color:#333; overflow:hidden; height:100vh; }
+        #map { position:fixed; top:0; left:0; width:100%; height:100%; z-index:1; }
+
+        .sidebar {
+            position: fixed;
+            top: 0; right: 0; bottom: 0;
+            width: 400px; max-width: 95vw;
+            background: white;
+            box-shadow: -8px 0 30px rgba(0,0,0,0.15);
+            z-index: 100;
+            padding: 20px;
+            overflow-y: auto;
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateX(0);
         }
-        #fatalErrorOverlay {position:fixed; inset:0; background:rgba(255,0,0,0.9); color:white; z-index:9999; display:none; flex-direction:column; justify-content:center; align-items:center; padding:20px; text-align:center;}
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(100%); }
+            .sidebar.active { transform: translateX(0); }
+        }
+
+        h1 { font-size: 26px; color: var(--primary); margin-bottom: 8px; display:flex; align-items:center; gap:10px; }
+        .meta { font-size: 14px; color: var(--gray); margin-bottom: 20px; }
+
+        .btn {
+            padding: 11px 18px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 15px;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        .btn-primary:hover { background: #0056b3; transform: translateY(-1px); }
+        .btn-secondary {
+            background: transparent;
+            color: var(--primary);
+            border: 2px solid #cfe2ff;
+        }
+        .btn-secondary:hover { background: #e7f0ff; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #c82333; }
+
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
+
+        .report {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            transition: transform 0.2s;
+        }
+        .report:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.1); }
+
+        .report h3 { margin: 0 0 6px; font-size: 17px; color: #222; }
+        .report .meta { font-size: 13px; color: var(--gray); margin: 6px 0; }
+        .report img { width:100%; max-height:180px; object-fit:cover; border-radius:8px; margin-top:10px; border:1px solid #eee; }
+        .report .actions { margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; }
+
+        .status { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+        .open { background: #ffebee; color: var(--danger); }
+        .cleaned { background: #e8f5e9; color: var(--success); }
+
+        #menuToggle {
+            position: fixed;
+            top: 15px; right: 15px;
+            z-index: 1001;
+            background: rgba(0,123,255,0.9);
+            color: white;
+            border: none;
+            width: 50px; height: 50px;
+            border-radius: 50%;
+            font-size: 22px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            display: none;
+        }
+        @media (max-width: 768px) { #menuToggle { display: block; } }
+
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1002;
+            padding: 20px;
+        }
+        .modal {
+            background: white;
+            border-radius: var(--radius);
+            width: 100%;
+            max-width: 480px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+        }
+        .modal h3 { margin-bottom: 16px; color: var(--primary); }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display:block; margin-bottom:6px; font-weight:600; color:#333; }
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+        .form-group input:disabled { background:#f8f9fa; }
+
+        #addModeHint {
+            position: fixed;
+            top: 20px; left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-weight: 600;
+            z-index: 999;
+            display: none;
+            box-shadow: var(--shadow);
+        }
+
+        .marker-icon-open i { color: #d32f2f; font-size: 24px; }
+        .marker-icon-clean i { color: #4caf50; font-size: 24px; }
     </style>
 </head>
 <body>
-    <div id="fatalErrorOverlay">
-        <h2>КРИТИЧЕСКИЙ СБОЙ</h2>
-        <p>Не удалось запустить приложение.</p>
-        <p id="fatalErrorMessage" style="font-weight:bold;margin-top:20px;"></p>
-    </div>
 
     <div id="map"></div>
-    <div id="addModeMessage">Кликните на карту, чтобы отметить место загрязнения, или <a href="#" id="cancelAddMode" style="color:#ffcc00;font-weight:bold;">отмените</a>.</div>
-   
-    <button id="menuToggle" aria-label="Открыть меню"><i class="fas fa-bars"></i></button>
-   
+
+    <button id="menuToggle"><i class="fas fa-bars"></i></button>
+
+    <div id="addModeHint">
+        Кликните по карте, чтобы добавить точку <a href="#" id="cancelAdd" style="color:#ffeb3b;margin-left:10px;">Отмена</a>
+    </div>
+
     <div class="sidebar" id="sidebar">
-        <h1>EcoMap — Отчёты о загрязнениях</h1>
-        <p class="meta">Местные жители сообщают о местах, требующих уборки.</p>
-       
-        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
-            <button id="addPointBtn" class="btn">Сообщить о точке</button>
-            <button id="exportBtn" class="small btn-ghost" disabled>Export JSON</button>
-            <button id="clearBtn" class="small btn-ghost" disabled>Clear All</button>
+        <h1>EcoMap</h1>
+        <p class="meta">Сообщения жителей о свалках и загрязнениях</p>
+
+        <div class="btn-group">
+            <button class="btn btn-primary" id="addBtn">Сообщить о точке</button>
+            <button class="btn btn-secondary" id="exportBtn" disabled>Export JSON</button>
+            <button class="btn btn-secondary" id="clearBtn" disabled>Clear All</button>
         </div>
-       
-        <div id="confirmationMessage">
-            <p style="margin:0 0 10px;"><strong>Вы уверены, что хотите удалить ВСЕ отчеты?</strong></p>
-            <button id="confirmYes">Да, удалить</button>
-            <button id="confirmNo" class="btn-ghost">Нет, отмена</button>
+
+        <div id="confirmBox" style="display:none;background:#fff3cd;padding:15px;border-radius:10px;margin:15px 0;border:1px solid #ffeaa7;">
+            <strong>Удалить все отчёты?</strong><br><br>
+            <button class="btn btn-danger" id="confirmYes">Да, удалить</button>
+            <button class="btn btn-secondary" id="confirmNo">Отмена</button>
         </div>
-       
-        <div id="reportsList"></div>
-       
-        <div class="thematic-content">
+
+        <div id="list"></div>
+
+        <div style="margin-top:40px;padding-top:20px;border-top:1px solid #eee;">
             <h3>Наша миссия</h3>
-            <div style="width:100%;height:150px;background:#e9f3ff;background-image:url('https://picsum.photos/400/150?grayscale&blur=2&random=1');background-size:cover;background-position:center;border-radius:10px;margin-bottom:15px;box-shadow:0 4px 8px rgba(0,0,0,0.05);"></div>
-            <p>EcoMap создан для того, чтобы дать гражданам возможность участвовать в сохранении чистоты. Отмечая проблемные зоны, мы коллективно создаём карту, которая помогает волонтёрам и властям эффективно планировать уборку.</p>
-            <p class="meta" style="margin-top:10px;">Проект: Leaflet + Firebase + адаптивный дизайн</p>
+            <p style="font-size:14px;line-height:1.6;margin-top:10px;">
+                EcoMap помогает жителям отмечать проблемные места. Вместе мы делаем город чище!
+            </p>
+            <p class="meta" style="margin-top:15px;font-size:13px;">
+                Leaflet • Firebase • Адаптивный дизайн
+            </p>
         </div>
     </div>
-       
+
     <div class="overlay" id="overlay">
-        <div class="card">
-            <h3 id="modalTitle" style="margin-top:0;">Новое место загрязнения</h3>
-            <div id="modalErrorContainer"></div>
-            <div class="row"><label>Координаты</label><input type="text" id="coords" disabled /></div>
-            <div class="row"><label>Заголовок (обязательно)</label><input id="titleInput" type="text" placeholder="Например: Свалка у озера" /></div>
-            <div class="row"><label>Описание</label><textarea id="descInput" rows="3" placeholder="Краткое описание проблемы..."></textarea></div>
-            <div class="row"><label>Фото (до 2 МБ)</label><input id="photoInput" type="file" accept="image/*" /><img id="photoPreview" class="thumb" style="display:none;" /></div>
-            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:15px;">
-                <button id="cancelBtn" class="btn-ghost">Отмена</button>
-                <button id="saveBtn">Сохранить Отчёт</button>
+        <div class="modal">
+            <h3>Новое место загрязнения</h3>
+            <div id="error" style="color:var(--danger);margin-bottom:10px;"></div>
+
+            <div class="form-group">
+                <label>Координаты</label>
+                <input type="text" id="coords" disabled>
+            </div>
+            <div class="form-group">
+                <label>Заголовок *</label>
+                <input type="text" id="title" placeholder="Например: Свалка у реки">
+            </div>
+            <div class="form-group">
+                <label>Описание</label>
+                <textarea id="desc" rows="3" placeholder="Что здесь? Какой мусор?"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Фото (не обязательно)</label>
+                <input type="file" id="photo" accept="image/*">
+                <img id="preview" style="display:none;width:100%;margin-top:10px;border-radius:8px;max-height:200px;object-fit:cover;">
+            </div>
+
+            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
+                <button class="btn btn-secondary" id="cancel">Отмена</button>
+                <button class="btn btn-primary" id="save">Сохранить</button>
             </div>
         </div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <!-- НОВЫЙ Firebase v10 (modular + compat) -->
+    <!-- Firebase v10 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp, query, orderBy, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
-        const firebaseConfig = {
+        const app = initializeApp({
             apiKey: "AIzaSyBchhpXlXNukYDgQHlRD0qPfQjvf8hsS8",
             authDomain: "ecomap-22dc4.firebaseapp.com",
             projectId: "ecomap-22dc4",
             storageBucket: "ecomap-22dc4.firebasestorage.app",
             messagingSenderId: "88803528674",
-            appId: "1:88803528674:web:d33c8ddacccf2286be33bb",
-            measurementId: "G-TLWK0JBH6R"
-        };
+            appId: "1:88803528674:web:d33c8ddacccf2286be33bb"
+        });
 
-        const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        const reportsCollection = collection(db, "reports");
+        const col = collection(db, "reports");
 
-        // Делаем доступным глобально для остального кода
         window.db = db;
-        window.reportsCollection = reportsCollection;
+        window.col = col;
         window.addDoc = addDoc;
         window.onSnapshot = onSnapshot;
         window.doc = doc;
@@ -138,211 +254,174 @@
     </script>
 
     <script>
-        // Фатальная ошибка
-        function showFatalError(msg) {
-            document.getElementById('fatalErrorMessage').textContent = msg;
-            document.getElementById('fatalErrorOverlay').style.display = 'flex';
+        const map = L.map('map').setView([43.25, 76.95], 12);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        const markers = L.layerGroup().addTo(map);
+        const openIcon = L.divIcon({className: "marker-icon-open", html: '<i class="fas fa-trash"></i>', iconSize: [30,30]});
+        const cleanIcon = L.divIcon({className: "marker-icon-clean", html: '<i class="fas fa-check-circle"></i>', iconSize: [30,30]});
+
+        const sidebar = document.getElementById('sidebar');
+        const list = document.getElementById('list');
+        const overlay = document.getElementById('overlay');
+        const addBtn = document.getElementById('addBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const confirmBox = document.getElementById('confirmBox');
+
+        let adding = false;
+        let reports = [];
+
+        // Подписка
+        onSnapshot(query(col, orderBy("created", "desc")), snap => {
+            reports = snap.docs.map(d => ({id: d.id, ...d.data()}));
+            render();
+        });
+
+        function render() {
+            markers.clearLayers();
+            list.innerHTML = reports.length === 0
+                ? '<p style="text-align:center;color:#888;margin:30px 0;">Нет отчётов. Будьте первыми!</p>'
+                : '';
+
+            exportBtn.disabled = clearBtn.disabled = reports.length === 0;
+
+            reports.forEach(r => {
+                const date = r.created?.toDate?.() || new Date();
+                const div = document.createElement('div');
+                div.className = 'report';
+                div.innerHTML = `
+                    <h3>${escape(r.title || 'Без названия')}</h3>
+                    <div class="meta">
+                        ${date.toLocaleString('ru')} • ${r.lat.toFixed(5)}, ${r.lng.toFixed(5)}
+                        <span class="status ${r.cleaned ? 'cleaned' : 'open'}">${r.cleaned ? 'Убрано' : 'Требует уборки'}</span>
+                    </div>
+                    ${r.description ? `<p>${escape(r.description)}</p>` : ''}
+                    ${r.photo ? `<img src="${r.photo}" alt="Фото">` : ''}
+                    <div class="actions">
+                        <button class="btn btn-secondary btn-small" data-id="${r.id}" data-act="go">На карте</button>
+                        <button class="btn ${r.cleaned ? 'btn-secondary' : 'btn-success'} btn-small" data-id="${r.id}" data-act="toggle">
+                            ${r.cleaned ? 'Отменить' : 'Убрано'}
+                        </button>
+                        <button class="btn btn-secondary btn-small" style="color:var(--danger)" data-id="${r.id}" data-act="del">Удалить</button>
+                    </div>
+                `;
+                list.appendChild(div);
+
+                const marker = L.marker([r.lat, r.lng], {icon: r.cleaned ? cleanIcon : openIcon}).addTo(markers);
+                marker.bindPopup(`<b>${escape(r.title)}</b><br>${r.description || ''}${r.photo ? `<br><img src="${r.photo}" style="width:100%;margin-top:8px;border-radius:8px;">` : ''}`);
+            });
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            if (typeof L === 'undefined') return showFatalError('Leaflet не загрузился');
+        function escape(s) { return String(s || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]); }
 
-            const map = L.map('map').setView([43.25, 76.95], 12);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap'
-            }).addTo(map);
+        // Добавление
+        addBtn.onclick = () => {
+            adding = true;
+            document.getElementById('addModeHint').style.display = 'block';
+            map.getContainer().style.cursor = 'crosshair';
+        };
+        document.getElementById('cancelAdd').onclick = e => { e.preventDefault(); adding = false; document.getElementById('addModeHint').style.display = 'none'; map.getContainer().style.cursor = ''; };
 
-            setTimeout(() => map.invalidateSize(), 200);
+        map.on('click', e => {
+            if (!adding) return;
+            adding = false;
+            document.getElementById('addModeHint').style.display = 'none';
+            map.getContainer().style.cursor = '';
 
-            const markers = L.layerGroup().addTo(map);
-            const iconOpen = new L.DivIcon({className:'marker-icon-open', html:'<i class="fa fa-trash"></i>', iconSize:[30,30], iconAnchor:[15,30]});
-            const iconCleaned = new L.DivIcon({className:'marker-icon-clean', html:'<i class="fa fa-check"></i>', iconSize:[30,30], iconAnchor:[15,30]});
-
-            const sidebar = document.getElementById('sidebar');
-            const menuToggleBtn = document.getElementById('menuToggle');
-            const addPointBtn = document.getElementById('addPointBtn');
-            const cancelAddModeBtn = document.getElementById('cancelAddMode');
-            const overlay = document.getElementById('overlay');
-            const cancelBtn = document.getElementById('cancelBtn');
-            const saveBtn = document.getElementById('saveBtn');
-            const reportsList = document.getElementById('reportsList');
-            const modalErrorContainer = document.getElementById('modalErrorContainer');
-            const exportBtn = document.getElementById('exportBtn');
-            const clearBtn = document.getElementById('clearBtn');
-            const confirmationMessage = document.getElementById('confirmationMessage');
-
-            let reports = [];
-            let addingMode = false;
-            const addModeMessage = document.getElementById('addModeMessage');
-            let currentLatLng = null;
-            let currentPhotoData = null;
-
-            const coordsInput = document.getElementById('coords');
-            const titleInput = document.getElementById('titleInput');
-            const descInput = document.getElementById('descInput');
-            const photoInput = document.getElementById('photoInput');
-            const photoPreview = document.getElementById('photoPreview');
-
-            function escapeHtml(s='') { return String(s).replace(/[&<>"']/g, m=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]); }
-
-            function renderReports() {
-                markers.clearLayers();
-                reportsList.innerHTML = '';
-
-                reports.sort((a,b) => (b.created?.seconds || 0) - (a.created?.seconds || 0));
-
-                if (reports.length === 0) {
-                    reportsList.innerHTML = '<p class="meta" style="text-align:center;margin-top:20px;">Нет отчётов. Будьте первыми!</p>';
-                    exportBtn.disabled = clearBtn.disabled = true;
-                    return;
-                }
-
-                exportBtn.disabled = clearBtn.disabled = false;
-
-                reports.forEach(r => {
-                    const date = r.created ? new Date(r.created.seconds * 1000) : new Date();
-                    const el = document.createElement('div');
-                    el.className = 'report';
-                    el.innerHTML = `
-                        <div style="display:flex;justify-content:space-between;align-items:center;">
-                            <strong>${escapeHtml(r.title || 'Без названия')}</strong>
-                            <span class="${r.cleaned ? 'status-clean' : 'status-open'}">${r.cleaned ? 'Убрано' : 'Открыто'}</span>
-                        </div>
-                        <div class="meta">${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} • ${r.lat.toFixed(6)}, ${r.lng.toFixed(6)}</div>
-                        <div>${escapeHtml(r.description || 'Нет описания')}</div>
-                    `;
-                    if (r.photo) {
-                        const img = document.createElement('img');
-                        img.src = r.photo; img.className = 'thumb';
-                        el.appendChild(img);
-                    }
-                    const actions = document.createElement('div');
-                    actions.style.cssText = 'margin-top:10px;display:flex;gap:8px;';
-                    actions.innerHTML = `
-                        <button class="small" data-id="${r.id}" data-action="goto">Перейти</button>
-                        <button class="small btn-ghost" data-id="${r.id}" data-action="toggle">${r.cleaned ? 'Отменить' : 'Убрано'}</button>
-                        <button class="small btn-ghost" data-id="${r.id}" data-action="delete" style="color:var(--danger-color);">Удалить</button>
-                    `;
-                    el.appendChild(actions);
-                    reportsList.appendChild(el);
-
-                    const marker = L.marker([r.lat, r.lng], {icon: r.cleaned ? iconCleaned : iconOpen}).addTo(markers);
-                    let popup = `<strong>${escapeHtml(r.title || 'Без названия')}</strong><br><small>${r.lat.toFixed(6)}, ${r.lng.toFixed(6)}</small><hr style="margin:5px 0;">`;
-                    popup += `<p>${escapeHtml(r.description || '')}</p>`;
-                    if (r.photo) popup += `<img src="${r.photo}" style="width:100%;max-width:250px;border-radius:6px;margin-top:6px;">`;
-                    marker.bindPopup(popup);
-                });
-            }
-
-            // Подписка на изменения
-            const q = query(reportsCollection, orderBy('created', 'desc'));
-            onSnapshot(q, snap => {
-                reports = [];
-                snap.forEach(doc => {
-                    reports.push({id: doc.id, ...doc.data()});
-                });
-                renderReports();
-            }, err => {
-                reportsList.innerHTML = `<div class="error-message">Ошибка Firestore: ${err.message}</div>`;
-            });
-
-            // Режим добавления
-            function toggleAddingMode(on) {
-                addingMode = on;
-                document.getElementById('map').classList.toggle('map-adding-mode', on);
-                addModeMessage.style.display = on ? 'block' : 'none';
-            }
-            map.on('click', e => { if (addingMode) { openFormAt(e.latlng); toggleAddingMode(false); }});
-            addPointBtn.onclick = () => { toggleAddingMode(true); if(innerWidth<=768) sidebar.classList.remove('active'); };
-            cancelAddModeBtn.onclick = e => { e.preventDefault(); toggleAddingMode(false); };
-            menuToggleBtn.onclick = () => sidebar.classList.toggle('active');
-
-            function openFormAt(latlng) {
-                currentLatLng = latlng;
-                coordsInput.value = `${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`;
-                titleInput.value = descInput.value = '';
-                photoInput.value = ''; photoPreview.style.display = 'none'; currentPhotoData = null;
-                modalErrorContainer.innerHTML = '';
-                overlay.style.display = 'flex';
-                titleInput.focus();
-            }
-
-            overlay.onclick = e => { if(e.target === overlay) overlay.style.display = 'none'; };
-            cancelBtn.onclick = () => overlay.style.display = 'none';
-
-            photoInput.onchange = e => {
-                const file = e.target.files[0];
-                if (!file) return;
-                if (file.size > 2*1024*1024) { modalErrorContainer.innerHTML = '<div class="error-message">Файл > 2 МБ!</div>'; return; }
-                const reader = new FileReader();
-                reader.onload = () => { photoPreview.src = reader.result; photoPreview.style.display = 'block'; currentPhotoData = reader.result; };
-                reader.readAsDataURL(file);
-            };
-
-            saveBtn.onclick = async () => {
-                const title = titleInput.value.trim();
-                if (!title) { modalErrorContainer.innerHTML = '<div class="error-message">Укажите заголовок!</div>'; return; }
-
-                saveBtn.disabled = true; saveBtn.textContent = 'Сохранение...';
-                try {
-                    await addDoc(reportsCollection, {
-                        title,
-                        description: descInput.value.trim(),
-                        lat: currentLatLng.lat,
-                        lng: currentLatLng.lng,
-                        photo: currentPhotoData || null,
-                        cleaned: false,
-                        created: serverTimestamp()
-                    });
-                    overlay.style.display = 'none';
-                } catch (err) {
-                    modalErrorContainer.innerHTML = `<div class="error-message">Ошибка: ${err.message}</div>`;
-                } finally {
-                    saveBtn.disabled = false; saveBtn.textContent = 'Сохранить Отчёт';
-                }
-            };
-
-            // Действия в списке
-            reportsList.onclick = async e => {
-                const btn = e.target.closest('button');
-                if (!btn) return;
-                const id = btn.dataset.id;
-                const action = btn.dataset.action;
-                if (action === 'goto') {
-                    const r = reports.find(x => x.id === id);
-                    map.setView([r.lat, r.lng], 16);
-                } else if (action === 'toggle') {
-                    const r = reports.find(x => x.id === id);
-                    await updateDoc(doc(db, "reports", id), {cleaned: !r.cleaned});
-                } else if (action === 'delete') {
-                    if (confirm('Удалить отчёт?')) await deleteDoc(doc(db, "reports", id));
-                }
-            };
-
-            // Export и Clear All
-            exportBtn.onclick = () => {
-                const data = reports.map(r => ({...r, created: r.created ? new Date(r.created.seconds*1000).toISOString() : null}));
-                const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url; a.download = `ecomap_${new Date().toISOString().slice(0,10)}.json`;
-                a.click(); URL.revokeObjectURL(url);
-            };
-
-            const handleClearAll = async () => {
-                clearBtn.disabled = true; clearBtn.textContent = 'Удаление...';
-                confirmationMessage.style.display = 'none';
-                try {
-                    const snap = await getDocs(reportsCollection);
-                    const batch = writeBatch(db);
-                    snap.docs.forEach(d => batch.delete(d.ref));
-                    await batch.commit();
-                } catch (err) { console.error(err); }
-            };
-            clearBtn.onclick = () => { if(reports.length) confirmationMessage.style.display = 'block'; };
-            document.getElementById('confirmYes').onclick = handleClearAll;
-            document.getElementById('confirmNo').onclick = () => confirmationMessage.style.display = 'none';
+            document.getElementById('coords').value = `${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
+            document.getElementById('title').value = '';
+            document.getElementById('desc').value = '';
+            document.getElementById('photo').value = '';
+            document.getElementById('preview').style.display = 'none';
+            document.getElementById('error').textContent = '';
+            overlay.style.display = 'flex';
+            window.currentPos = e.latlng;
         });
+
+        document.getElementById('cancel').onclick = () => overlay.style.display = 'none';
+        overlay.onclick = e => { if (e.target === overlay) overlay.style.display = 'none'; };
+
+        document.getElementById('photo').onchange = e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.size > 3*1024*1024) return alert('Фото слишком большое (макс. 3МБ)');
+            const reader = new FileReader();
+            reader.onload = () => {
+                document.getElementById('preview').src = reader.result;
+                document.getElementById('preview').style.display = 'block';
+                window.currentPhoto = reader.result;
+            };
+            reader.readAsDataURL(file);
+        };
+
+        document.getElementById('save').onclick = async () => {
+            const title = document.getElementById('title').value.trim();
+            if (!title) return document.getElementById('error').textContent = 'Введите заголовок!';
+
+            document.getElementById('save').disabled = true;
+            document.getElementById('save').textContent = 'Сохранение...';
+
+            try {
+                await addDoc(col, {
+                    title,
+                    description: document.getElementById('desc').value.trim(),
+                    lat: window.currentPos.lat,
+                    lng: window.currentPos.lng,
+                    photo: window.currentPhoto || null,
+                    cleaned: false,
+                    created: serverTimestamp()
+                });
+                overlay.style.display = 'none';
+            } catch (err) {
+                document.getElementById('error').textContent = 'Ошибка: ' + err.message;
+            } finally {
+                document.getElementById('save').disabled = false;
+                document.getElementById('save').textContent = 'Сохранить';
+            }
+        };
+
+        // Действия
+        list.onclick = async e => {
+            const btn = e.target.closest('button');
+            if (!btn) return;
+            const id = btn.dataset.id;
+            const act = btn.dataset.act;
+            const r = reports.find(x => x.id === id);
+
+            if (act === 'go') map.setView([r.lat, r.lng], 17);
+            if (act === 'toggle') await updateDoc(doc(db, 'reports', id), {cleaned: !r.cleaned});
+            if (act === 'del' && confirm('Удалить отчёт?')) await deleteDoc(doc(db, 'reports', id));
+        };
+
+        // Export / Clear
+        exportBtn.onclick = () => {
+            const data = reports.map(r => ({
+                ...r,
+                created: r.created?.toDate?.().toISOString() || null
+            }));
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `ecomap_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+        };
+
+        clearBtn.onclick = () => confirmBox.style.display = 'block';
+        document.getElementById('confirmNo').onclick = () => confirmBox.style.display = 'none';
+        document.getElementById('confirmYes').onclick = async () => {
+            confirmBox.style.display = 'none';
+            const snap = await getDocs(col);
+            const batch = writeBatch(db);
+            snap.docs.forEach(d => batch.delete(d.ref));
+            await batch.commit();
+        };
+
+        document.getElementById('menuToggle').onclick = () => sidebar.classList.toggle('active');
+
+        setTimeout(() => map.invalidateSize(), 300);
     </script>
 </body>
 </html>
