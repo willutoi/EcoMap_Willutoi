@@ -104,17 +104,13 @@
             background: var(--primary-color); color: white;
             padding: 8px 15px; border-radius: 8px;
             box-shadow: var(--shadow-light); font-size: 14px;
-            z-index: 999; /* Выше карты, но ниже кнопок */
+            z-index: 999; 
             display: none; white-space: nowrap; 
         }
 
-        /* --- *ИСПРАВЛЕННЫЙ* Mobile Adaptivity (Media Query) --- */
+        
         @media (max-width: 768px) {
-            /* * Мы НЕ используем 'flex-direction: column' для body.
-             * Вместо этого, сайдбар становится 'position: fixed' 
-             * и вынимается из потока, а карта (flex: 1)
-             * автоматически занимает 100% экрана.
-            */
+            
             .sidebar {
                 position: fixed; top: 0; right: 0;
                 width: 100%; 
@@ -175,7 +171,7 @@
             <div class="thematic-image" style="background-image: url('https://picsum.photos/400/150?grayscale&blur=2&random=1');"></div>
             <p>EcoMap создан для того, чтобы дать гражданам возможность участвовать в сохранении чистоты. Отмечая проблемные зоны, мы коллективно создаем карту, которая помогает волонтерам и местным властям эффективно планировать уборку.</p>
             <p>Ваш отчёт – это первый шаг к чистой планете!</p>
-            <p class="meta" style="margin-top:10px;">Проект создан для демонстрации навыков: Leaflet, Адаптивный дизайн, LocalStorage.</p>
+            <p class="meta" style="margin-top:10px;">Проект создан для демонстрации навыков.</p>
         </div>
     
     </div>
@@ -314,23 +310,22 @@
                 }
             });
 
-            // --- НАЗНАЧЕНИЕ ОБРАБОТЧИКОВ ---
+            
             
             menuToggleBtn.addEventListener('click', () => {
                 sidebar.classList.toggle('active');
             });
             
-            // *** ИСПРАВЛЕНИЕ UX ДЛЯ КНОПКИ "СООБЩИТЬ" ***
+            
             addPointBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 toggleAddingMode(true);
                 
-                // --- НОВЫЙ КОД ---
-                // Если сайдбар открыт (на мобильном), то закрываем его
+                
                 if (sidebar.classList.contains('active')) {
                     sidebar.classList.remove('active');
                 }
-                // --- КОНЕЦ НОВОГО КОДА ---
+               
             });
             
             cancelAddModeBtn.addEventListener('click', (e) => {
@@ -338,7 +333,7 @@
                 toggleAddingMode(false);
             });
 
-            // ... (Весь остальной JS-код для модала, сохранения, удаления... остается БЕЗ ИЗМЕНЕНИЙ) ...
+           
             
             const coordsInput = document.getElementById('coords');
             const titleInput = document.getElementById('titleInput');
@@ -459,7 +454,7 @@
                 renderReports();
             });
 
-            // Первый запуск
+     
             renderReports();
         });
     </script>
