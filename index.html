@@ -2,10 +2,11 @@
 <html lang="ru">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>EcoMap — Отчёты о загрязнениях</title>
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIINfQdH62Z3uUvR1I3G0A3v6R5b4Vn7V9a8=" crossorigin="" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
     
     <style>
@@ -21,17 +22,18 @@
         }
         body { 
             font-family: 'Inter', system-ui, Arial, sans-serif; 
-            margin:0; 
-            display:flex; 
-            height:100vh; 
+            margin: 0; 
+            display: flex; 
+            height: 100vh; 
             color: var(--text-color); 
             overflow: hidden; 
         }
         
         #map { 
-            flex:1; 
+            flex: 1; 
             position: relative;
             z-index: 1; 
+            min-width: 0; 
         }
         
         /* --- Sidebar --- */
@@ -39,34 +41,47 @@
             width: 380px; 
             min-width: 320px; 
             max-width: 400px;
-            background:var(--bg-color); 
-            padding:16px; 
+            background: var(--bg-color); 
+            padding: 16px; 
             box-shadow: -4px 0 16px rgba(0,0,0,0.08); 
-            overflow-y:auto; 
-            display:flex; 
-            flex-direction:column;
+            overflow-y: auto; 
+            display: flex; 
+            flex-direction: column;
             position: relative;
             z-index: 100;
             box-sizing: border-box;
         }
         
-        h1 { font-size:24px; margin:0 0 12px; color:var(--primary-color); }
-        .meta { font-size:13px; color:var(--secondary-color); margin-bottom:12px; }
-        .report { border:1px solid #e3e8ef; padding:12px; margin-bottom:10px; border-radius:10px; background:#fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        h1 { font-size: 24px; margin: 0 0 12px; color: var(--primary-color); }
+        .meta { font-size: 13px; color: var(--secondary-color); margin-bottom: 12px; }
+        .report { border: 1px solid #e3e8ef; padding: 12px; margin-bottom: 10px; border-radius: 10px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         
-        button { padding:10px 14px; border-radius:8px; border:0; background:var(--primary-color); color:#fff; cursor:pointer; font-weight:600; transition: all 0.2s; }
-        /* --- Добавлено для заблокированной кнопки --- */
+        /* КНОПКИ */
+        button { 
+            padding: 10px 14px; 
+            border-radius: 8px; 
+            border: 0; 
+            background: var(--primary-color); 
+            color: #fff; 
+            cursor: pointer; 
+            font-weight: 600; 
+            transition: all 0.2s; 
+        }
+        button:hover:not(:disabled) {
+            opacity: 0.9;
+            box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+        }
         button:disabled {
             background: #aaa;
             cursor: not-allowed;
             box-shadow: none;
         }
-        .btn-ghost { background:transparent; color:var(--primary-color); border:1px solid #cfe3ff; }
-        .small { font-size:13px; padding:8px 12px; font-weight: normal; }
+        .btn-ghost { background: transparent; color: var(--primary-color); border: 1px solid #cfe3ff; }
+        .small { font-size: 13px; padding: 8px 12px; font-weight: normal; }
 
-        .status-open { color:var(--danger-color); font-weight:600; }
-        .status-clean { color:var(--success-color); font-weight:600; }
-        .thumb { width:100%; max-height:160px; object-fit:cover; border-radius:8px; margin-top:8px; border:1px solid #eee; }
+        .status-open { color: var(--danger-color); font-weight: 600; }
+        .status-clean { color: var(--success-color); font-weight: 600; }
+        .thumb { width: 100%; max-height: 160px; object-fit: cover; border-radius: 8px; margin-top: 8px; border: 1px solid #eee; }
         
         /* Thematic Content */
         .thematic-content {
@@ -93,21 +108,21 @@
 
         /* --- Модал --- */
         .overlay { 
-            position:fixed; inset:0; display:none; 
-            align-items:center; justify-content:center; 
-            background:rgba(0,0,0,0.5); 
+            position: fixed; inset: 0; display: none; 
+            align-items: center; justify-content: center; 
+            background: rgba(0,0,0,0.6); 
             z-index: 1002;
             overflow-y: auto; 
         }
         .card { 
-            background:white; padding:20px; border-radius:12px; 
+            background: white; padding: 20px; border-radius: 12px; 
             width: 450px; max-width: 90%; 
-            box-shadow:var(--shadow-light); 
+            box-shadow: var(--shadow-light); 
             margin: 20px auto; box-sizing: border-box;
         }
-        .row { margin-bottom:12px; }
-        label { display:block; font-size:14px; margin-bottom:5px; color:#333; font-weight:500; }
-        input[type="text"], textarea, input[type="file"] { width:100%; padding:10px; border-radius:8px; border:1px solid #d7e0ec; box-sizing:border-box; }
+        .row { margin-bottom: 12px; }
+        label { display: block; font-size: 14px; margin-bottom: 5px; color: #333; font-weight: 500; }
+        input[type="text"], textarea, input[type="file"] { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #d7e0ec; box-sizing: border-box; }
         textarea { resize: vertical; }
 
         /* Стили для режима добавления */
@@ -124,6 +139,8 @@
 
         /* --- Mobile Adaptivity (Sidebar Overlay) --- */
         @media (max-width: 768px) {
+            body { flex-direction: column; } 
+            #map { height: 100vh; width: 100%; } 
             .sidebar {
                 position: fixed; top: 0; right: 0;
                 width: 100%; 
@@ -142,6 +159,7 @@
             #addModeMessage { 
                 width: 80%; 
                 white-space: normal; 
+                text-align: center;
             }
         }
         
@@ -158,6 +176,16 @@
             line-height: 26px; text-align: center; font-size: 14px;
             color: white; font-weight: bold; box-shadow: 0 0 5px rgba(0,0,0,0.4);
         }
+        /* Стили для сообщения об ошибке */
+        .error-message {
+            color: var(--danger-color); 
+            margin-top: 10px; 
+            font-size: 14px;
+            padding: 8px;
+            border: 1px solid #f8d7da;
+            background-color: #fcebeb;
+            border-radius: 6px;
+        }
     </style>
 </head>
 <body>
@@ -165,7 +193,7 @@
     <div id="map"></div>
     <div id="addModeMessage">Кликните на карту, чтобы отметить место загрязнения, или <a href="#" id="cancelAddMode" style="color: #ffcc00; font-weight: bold;">отмените</a>.</div>
     
-    <button id="menuToggle"><i class="fas fa-bars"></i></button>
+    <button id="menuToggle" aria-label="Открыть меню"><i class="fas fa-bars"></i></button>
 
     <div class="sidebar" id="sidebar">
         <h1>🗑️ EcoMap — Отчёты о загрязнениях</h1>
@@ -173,8 +201,8 @@
         
         <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
             <button id="addPointBtn" class="btn">📍 Сообщить о точке</button>
-            <button id="exportBtn" class="small btn-ghost">Export JSON</button>
-            <button id="clearBtn" class="small btn-ghost">Clear All</button>
+            <button id="exportBtn" class="small btn-ghost" disabled>Export JSON</button>
+            <button id="clearBtn" class="small btn-ghost" disabled>Clear All</button>
         </div>
         
         <div id="reportsList"></div>
@@ -191,6 +219,8 @@
     <div class="overlay" id="overlay">
         <div class="card">
             <h3 id="modalTitle" style="margin-top:0;">Новое место загрязнения</h3>
+            <div id="modalErrorContainer">
+                </div>
             <div class="row">
                 <label>Координаты (Latitude, Longitude)</label>
                 <input type="text" id="coords" disabled />
@@ -215,7 +245,8 @@
         </div>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20uE1jbp4D53k/x7T4fQ/jN3xG0A3v6R5b4Vn7V9a8=" crossorigin=""></script>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script> 
@@ -224,7 +255,7 @@
         // === ВАША КОНФИГУРАЦИЯ FIREBASE ===
         // ========================================================
         const firebaseConfig = {
-          apiKey: "AIzaSyBchhpXlXNukYDgQHlRD0qPfQ2jvf8hsS8",
+          apiKey: "AIzaSyBchhpXlXNukYDgQHlRD0qPfQjvf8hsS8",
           authDomain: "ecomap-22dc4.firebaseapp.com",
           projectId: "ecomap-22dc4",
           storageBucket: "ecomap-22dc4.firebasestorage.app",
@@ -236,7 +267,7 @@
         
         // --- Инициализация (v8) ---
         if (typeof firebase === 'undefined' || typeof firebase.firestore === 'undefined') {
-             alert('Ошибка: Библиотеки Firebase не загружены.'); 
+             console.error('Ошибка: Библиотеки Firebase не загружены.'); 
              return; 
         } else {
              firebase.initializeApp(firebaseConfig);
@@ -259,8 +290,7 @@
             const cancelBtn = document.getElementById('cancelBtn');
             const saveBtn = document.getElementById('saveBtn');
             const reportsList = document.getElementById('reportsList');
-            const exportBtn = document.getElementById('exportBtn');
-            const clearBtn = document.getElementById('clearBtn');
+            const modalErrorContainer = document.getElementById('modalErrorContainer');
             
             if (typeof L === 'undefined') {
                 console.error('Leaflet library failed to load.');
@@ -275,6 +305,11 @@
             }).addTo(map);
 
             const markers = L.layerGroup().addTo(map);
+
+            map.whenReady(function() {
+                map.invalidateSize(); 
+            });
+
 
             const createCustomIcon = (className, content) => new L.DivIcon({
                 className: className,
@@ -294,6 +329,10 @@
                 list.innerHTML = '';
                 
                 reports.sort((a, b) => (b.created ? b.created.toMillis() : 0) - (a.created ? a.created.toMillis() : 0));
+
+                if (reports.length === 0) {
+                    list.innerHTML = '<p class="meta" style="text-align:center;margin-top:20px;">Нет активных отчётов. Будьте первыми!</p>';
+                }
 
                 reports.forEach((r) => {
                     const el = document.createElement('div');
@@ -351,6 +390,7 @@
                     renderReports();
                 }, (error) => {
                     console.error("[FIRESTORE ERROR] Ошибка при получении данных: ", error);
+                    reportsList.innerHTML = `<div class="error-message">Ошибка загрузки отчетов. Проверьте Правила безопасности Firestore (ЧТЕНИЕ).</div>`;
                 });
             }
 
@@ -370,7 +410,7 @@
                 }
             });
 
-            // --- ОБРАБОТЧИКИ ---
+            // --- ОБРАБОТЧИКИ БОКОВОЙ ПАНЕЛИ ---
             menuToggleBtn.addEventListener('click', () => {
                 sidebar.classList.toggle('active');
             });
@@ -406,6 +446,7 @@
                 photoPreview.style.display = 'none';
                 photoPreview.src = '';
                 currentPhotoData = null;
+                modalErrorContainer.innerHTML = ''; 
                 overlay.style.display = 'flex';
                 titleInput.focus();
             }
@@ -423,9 +464,8 @@
                     currentPhotoData = null;
                     return;
                 }
-                // Проверка размера файла (2MB)
                 if (file.size > 2 * 1024 * 1024) {
-                    console.error('Размер файла превышает 2MB.');
+                    modalErrorContainer.innerHTML = '<div class="error-message">Файл слишком большой (макс. 2MB)!</div>';
                     photoInput.value = '';
                     photoPreview.style.display = 'none';
                     currentPhotoData = null;
@@ -441,18 +481,18 @@
                 reader.readAsDataURL(file);
             });
 
-            // *** ИСПРАВЛЕННЫЙ ОБРАБОТЧИК SAVEBTN (v8) ***
+            // *** ОБРАБОТЧИК SAVEBTN ***
             saveBtn.addEventListener('click', async () => {
                 const t = titleInput.value.trim();
                 if (!t) {
-                    alert('Пожалуйста, укажите заголовок!');
+                    modalErrorContainer.innerHTML = '<div class="error-message">Пожалуйста, укажите заголовок!</div>';
                     titleInput.focus();
                     return;
                 }
                 
-                // Блокируем кнопку
                 saveBtn.disabled = true;
                 saveBtn.textContent = 'Сохранение...';
+                modalErrorContainer.innerHTML = ''; 
 
                 const d = descInput.value.trim();
                 const item = {
@@ -468,28 +508,30 @@
                 try {
                     await reportsCollection.add(item); 
                     
-                    // Успех: Закрываем модал.
                     overlay.style.display = 'none'; 
                     
                 } catch (error) {
-                    // Ошибка: Логируем и показываем сообщение об ошибке.
                     console.error("[FIRESTORE ERROR] Ошибка при добавлении документа: ", error);
-                    const errorMsg = document.createElement('div');
-                    errorMsg.innerHTML = `<p style="color: var(--danger-color); margin-top: 10px;">Ошибка сохранения. Проверьте консоль (F12) и настройки Firebase.</p>`;
-                    saveBtn.parentElement.before(errorMsg);
-                    setTimeout(() => errorMsg.remove(), 5000);
+                    let errorMessage = "Не удалось сохранить. Проверьте консоль (F12) и, главное, Правила безопасности Firebase (ЗАПИСЬ).";
+                    if (error.code === 'permission-denied') {
+                        errorMessage = `Ошибка Firebase: ${error.code}. Недостаточно прав для записи! Проверьте Правила безопасности!`; 
+                    } else if (error.message) {
+                         errorMessage = `Ошибка: ${error.message}.`;
+                    }
+                    modalErrorContainer.innerHTML = `<div class="error-message">${errorMessage}</div>`;
 
                 } finally {
-                    // Блок FINALLY гарантированно выполнится, независимо от успеха/ошибки.
-                    // Разблокируем кнопку и сбрасываем данные.
                     saveBtn.disabled = false;
                     saveBtn.textContent = 'Сохранить Отчёт';
-                    currentLatLng = null;
-                    currentPhotoData = null;
+                    
+                    if (overlay.style.display === 'none') {
+                        currentLatLng = null;
+                        currentPhotoData = null;
+                    }
                 }
             });
 
-            // list actions (delegation)
+            // Обработчики действий со списком (Перейти, Отметить, Удалить)
             reportsList.addEventListener('click', async (ev) => {
                 const btn = ev.target.closest('button');
                 if (!btn) return;
@@ -500,35 +542,26 @@
 
                 if (action === 'goto') {
                     map.setView([r.lat, r.lng], 16);
-                    if (window.innerWidth <= 768) {
-                        sidebar.classList.remove('active');
-                    }
                 } else if (action === 'toggle') {
-                    const newCleanedStatus = !r.cleaned;
                     try {
-                        await reportsCollection.doc(docId).update({ cleaned: newCleanedStatus });
+                        const docRef = reportsCollection.doc(docId);
+                        await docRef.update({ cleaned: !r.cleaned });
                     } catch (error) {
-                         console.error("Ошибка при обновлении статуса: ", error);
+                         console.error("Ошибка обновления статуса:", error);
                     }
                 } else if (action === 'delete') {
-                    if (!confirm(`Вы действительно хотите удалить отчёт "${r.title}"?`)) return;
-                    try {
-                        await reportsCollection.doc(docId).delete();
-                    } catch (error) {
-                        console.error("Ошибка при удалении документа: ", error);
+                    if (window.confirm('Вы уверены, что хотите удалить этот отчёт?')) {
+                         try {
+                            const docRef = reportsCollection.doc(docId);
+                            await docRef.delete();
+                        } catch (error) {
+                            console.error("Ошибка удаления:", error);
+                        }
                     }
                 }
             });
-
-            // Export / Clear (Отключены или изменены для работы с облаком)
-            exportBtn.addEventListener('click', () => {
-                alert("Экспорт отключен. Данные хранятся в Firebase.");
-            });
-            clearBtn.addEventListener('click', async () => {
-                alert('Для полной очистки базы данных "reports" воспользуйтесь консолью Firebase.');
-            });
-
-            // ПЕРВЫЙ ЗАПУСК: Начинаем слушать базу данных
+            
+            // Запускаем подписку на данные
             subscribeToReports();
         });
     </script>
