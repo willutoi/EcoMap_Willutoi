@@ -54,11 +54,12 @@
         .meta { font-size:13px; color:var(--secondary-color); margin-bottom:12px; }
         .report { border:1px solid #e3e8ef; padding:12px; margin-bottom:10px; border-radius:10px; background:#fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         
-        button { padding:10px 14px; border-radius:8px; border:0; background:var(--primary-color); color:#fff; cursor:pointer; font-weight:600; }
+        button { padding:10px 14px; border-radius:8px; border:0; background:var(--primary-color); color:#fff; cursor:pointer; font-weight:600; transition: all 0.2s; }
         /* --- Добавлено для заблокированной кнопки --- */
         button:disabled {
             background: #aaa;
             cursor: not-allowed;
+            box-shadow: none;
         }
         .btn-ghost { background:transparent; color:var(--primary-color); border:1px solid #cfe3ff; }
         .small { font-size:13px; padding:8px 12px; font-weight: normal; }
@@ -216,11 +217,8 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
-    <!-- === FIREBASE SDKs (v8) === -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script> 
-    <!-- =========================== -->
-    
     <script>
         // ========================================================
         // === ВАША КОНФИГУРАЦИЯ FIREBASE ===
@@ -238,13 +236,14 @@
         
         // --- Инициализация (v8) ---
         if (typeof firebase === 'undefined' || typeof firebase.firestore === 'undefined') {
-             alert('Ошибка: Библиотеки Firebase не загружены.');
+             alert('Ошибка: Библиотеки Firebase не загружены.'); 
+             return; 
         } else {
              firebase.initializeApp(firebaseConfig);
         }
         
         const db = firebase.firestore();
-        const reportsCollection = db.collection("reports"); // Название коллекции в БД
+        const reportsCollection = db.collection("reports"); 
         let reports = []; 
         // ========================================================
         
@@ -263,7 +262,6 @@
             const exportBtn = document.getElementById('exportBtn');
             const clearBtn = document.getElementById('clearBtn');
             
-            // Проверка наличия Leaflet
             if (typeof L === 'undefined') {
                 console.error('Leaflet library failed to load.');
                 return;
@@ -310,7 +308,7 @@
                             <strong>${escapeHtml(r.title || 'Без названия')}</strong>
                             <span class="${r.cleaned ? 'status-clean' : 'status-open'}">${r.cleaned ? 'Убрано' : 'Открыто'}</span>
                         </div>
-                        <div class="meta">${dateStr} ${timeStr} • ${r.lat.toFixed(5)}, ${r.lng.toFixed(5)}</div>
+                        <div class="meta">${dateStr} ${timeStr} • ${r.lat.toFixed(6)}, ${r.lng.toFixed(6)}</div>
                         <div>${escapeHtml(r.description || 'Нет описания')}</div>
                     `;
                     if (r.photo) {
@@ -335,7 +333,7 @@
                     const markerIcon = r.cleaned ? iconCleaned : iconOpen;
                     const marker = L.marker([r.lat, r.lng], { icon: markerIcon }).addTo(markers);
                     let popupHtml = `<strong style="font-size:1.1em;">${escapeHtml(r.title || 'Без названия')}</strong><br>`;
-                    popupHtml += `<span style="font-size:0.9em;color:var(--secondary-color);">${r.lat.toFixed(5)}, ${r.lng.toFixed(5)}</span><hr style="margin:5px 0;">`;
+                    popupHtml += `<span style="font-size:0.9em;color:var(--secondary-color);">${r.lat.toFixed(6)}, ${r.lng.toFixed(6)}</span><hr style="margin:5px 0;">`;
                     popupHtml += `<p>${escapeHtml(r.description || 'Нет описания')}</p>`;
                     if (r.photo) popupHtml += `<img src="${r.photo}" style="width:100%;max-width:250px;height:auto;margin-top:6px;border-radius:6px;object-fit:cover;">`;
                     marker.bindPopup(popupHtml);
@@ -352,8 +350,7 @@
                     reports = newReports;
                     renderReports();
                 }, (error) => {
-                    console.error("Ошибка при получении данных: ", error);
-                    alert("Не удалось загрузить данные из базы. Проверьте Правила безопасности Firestore.");
+                    console.error("[FIRESTORE ERROR] Ошибка при получении данных: ", error);
                 });
             }
 
@@ -413,10 +410,9 @@
                 titleInput.focus();
             }
             
-            // *** ИСПРАВЛЕННЫЙ ОБРАБОТЧИК CANCELBTN (сбрасывает данные) ***
             cancelBtn.addEventListener('click', () => {
                 overlay.style.display = 'none';
-                currentLatLng = null; // Сброс данных при отмене
+                currentLatLng = null; 
                 currentPhotoData = null;
             });
 
@@ -427,8 +423,9 @@
                     currentPhotoData = null;
                     return;
                 }
+                // Проверка размера файла (2MB)
                 if (file.size > 2 * 1024 * 1024) {
-                    alert('Размер файла превышает 2MB. Пожалуйста, выберите меньший файл.');
+                    console.error('Размер файла превышает 2MB.');
                     photoInput.value = '';
                     photoPreview.style.display = 'none';
                     currentPhotoData = null;
@@ -465,22 +462,26 @@
                     lng: currentLatLng.lng,
                     photo: currentPhotoData || null,
                     cleaned: false,
-                    // Используем синтаксис v8 для времени
                     created: firebase.firestore.FieldValue.serverTimestamp() 
                 };
                 
                 try {
-                    // Используем синтаксис v8 для добавления
                     await reportsCollection.add(item); 
                     
-                    // Закрываем модал
-                    overlay.style.display = 'none';
+                    // Успех: Закрываем модал.
+                    overlay.style.display = 'none'; 
                     
                 } catch (error) {
-                    console.error("Ошибка при добавлении документа: ", error);
-                    alert("Не удалось сохранить отчёт в базу. Проверьте Правила безопасности.");
+                    // Ошибка: Логируем и показываем сообщение об ошибке.
+                    console.error("[FIRESTORE ERROR] Ошибка при добавлении документа: ", error);
+                    const errorMsg = document.createElement('div');
+                    errorMsg.innerHTML = `<p style="color: var(--danger-color); margin-top: 10px;">Ошибка сохранения. Проверьте консоль (F12) и настройки Firebase.</p>`;
+                    saveBtn.parentElement.before(errorMsg);
+                    setTimeout(() => errorMsg.remove(), 5000);
+
                 } finally {
-                    // Разблокируем кнопку и сбрасываем данные
+                    // Блок FINALLY гарантированно выполнится, независимо от успеха/ошибки.
+                    // Разблокируем кнопку и сбрасываем данные.
                     saveBtn.disabled = false;
                     saveBtn.textContent = 'Сохранить Отчёт';
                     currentLatLng = null;
@@ -503,26 +504,18 @@
                         sidebar.classList.remove('active');
                     }
                 } else if (action === 'toggle') {
-                    // *** ОБНОВЛЕНИЕ В FIREBASE (v8) ***
                     const newCleanedStatus = !r.cleaned;
                     try {
-                        // Используем синтаксис v8
                         await reportsCollection.doc(docId).update({ cleaned: newCleanedStatus });
                     } catch (error) {
                          console.error("Ошибка при обновлении статуса: ", error);
-                         alert("Ошибка при обновлении статуса в базе.");
                     }
                 } else if (action === 'delete') {
-                    // Используем confirm() для простоты, так как prompt() неудобен
                     if (!confirm(`Вы действительно хотите удалить отчёт "${r.title}"?`)) return;
-                    
-                    // *** УДАЛЕНИЕ В FIREBASE (v8) ***
                     try {
-                        // Используем синтаксис v8
                         await reportsCollection.doc(docId).delete();
                     } catch (error) {
                         console.error("Ошибка при удалении документа: ", error);
-                        alert("Ошибка при удалении отчёта из базы.");
                     }
                 }
             });
