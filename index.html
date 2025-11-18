@@ -436,6 +436,7 @@
             });
 
             // *** ФУНКЦИЯ СОХРАНЕНИЯ (ONLINE) ***
+            // *** ФУНКЦИЯ СОХРАНЕНИЯ (ONLINE) ***
             saveBtn.addEventListener('click', async () => {
                 const t = titleInput.value.trim();
                 if (!t) {
@@ -443,6 +444,10 @@
                     titleInput.focus();
                     return;
                 }
+                
+                // --- ДОБАВЛЕНО: Блокируем кнопку, чтобы предотвратить двойное нажатие ---
+                saveBtn.disabled = true;
+                saveBtn.textContent = 'Сохранение...';
 
                 const d = descInput.value.trim();
                 const item = {
@@ -452,17 +457,26 @@
                     lng: currentLatLng.lng,
                     photo: currentPhotoData || null,
                     cleaned: false,
-                    // Используем время сервера
-                    created: firebase.firestore.FieldValue.serverTimestamp()
+                    created: serverTimestamp()
                 };
                 
                 try {
-                    await reportsCollection.add(item);
-                    overlay.style.display = 'none';
-                    // subscribeToReports автоматически обновит карту
+                    await addDoc(reportsCollection, item); 
+                    
+                    // --- ДОБАВЛЕНО: Закрываем модальное окно после успешного сохранения ---
+                    overlay.style.display = 'none'; 
+                    
                 } catch (error) {
                     console.error("Ошибка при добавлении документа: ", error);
-                    alert("Не удалось сохранить отчёт в базу. Проверьте Правила безопасности.");
+                    alert("Не удалось сохранить отчёт в базу.");
+                } finally {
+                    // --- ДОБАВЛЕНО: Разблокируем кнопку и сбрасываем текст в любом случае ---
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = 'Сохранить Отчёт';
+                    
+                    // --- ДОБАВЛЕНО: Сбрасываем все временные данные для предотвращения дублирования ---
+                    currentLatLng = null;
+                    currentPhotoData = null;
                 }
             });
 
@@ -515,3 +529,4 @@
     </script>
 </body>
 </html>
+
