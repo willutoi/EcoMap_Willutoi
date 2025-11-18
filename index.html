@@ -214,36 +214,17 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script> 
     <script>
-        // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyBchhpXlXNukYDgQHlRD0qPfQ2jvf8hsS8",
-  authDomain: "ecomap-22dc4.firebaseapp.com",
-  projectId: "ecomap-22dc4",
-  storageBucket: "ecomap-22dc4.firebasestorage.app",
-  messagingSenderId: "88803528674",
-  appId: "1:88803528674:web:d33c8ddacccf2286be33bb",
-  measurementId: "G-TLWK0JBH6R"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);// ========================================================
-        // 💥💥💥 ВСТАВЬТЕ СЮДА ВАШ КОНФИГУРАЦИОННЫЙ КОД FIREBASE! 💥💥💥
-        // Выглядит так: const firebaseConfig = { apiKey: "...", authDomain: "..." };
+        // ========================================================
+        // === ВАША КОНФИГУРАЦИЯ FIREBASE ===
+        // ========================================================
         const firebaseConfig = {
-          apiKey: "ВАШ_API_КЛЮЧ", 
-          authDomain: "ВАШ_ПРОЕКТ.firebaseapp.com",
-          projectId: "ВАШ_ID_ПРОЕКТА",
-          storageBucket: "ВАШ_BUCKET", 
-          messagingSenderId: "ВАШ_SENDER_ID",
-          appId: "ВАШ_APP_ID"
+          apiKey: "AIzaSyBchhpXlXNukYDgQHlRD0qPfQ2jvf8hsS8",
+          authDomain: "ecomap-22dc4.firebaseapp.com",
+          projectId: "ecomap-22dc4",
+          storageBucket: "ecomap-22dc4.firebasestorage.app",
+          messagingSenderId: "88803528674",
+          appId: "1:88803528674:web:d33c8ddacccf2286be33bb",
+          measurementId: "G-TLWK0JBH6R"
         };
         // ---------------------------------------------------------------------
         
@@ -369,7 +350,7 @@ const analytics = getAnalytics(app);// =========================================
                     renderReports();
                 }, (error) => {
                     console.error("Ошибка при получении данных: ", error);
-                    alert("Не удалось загрузить данные из базы.");
+                    alert("Не удалось загрузить данные из базы. Проверьте Правила безопасности Firestore.");
                 });
             }
 
@@ -481,7 +462,7 @@ const analytics = getAnalytics(app);// =========================================
                     // subscribeToReports автоматически обновит карту
                 } catch (error) {
                     console.error("Ошибка при добавлении документа: ", error);
-                    alert("Не удалось сохранить отчёт в базу.");
+                    alert("Не удалось сохранить отчёт в базу. Проверьте Правила безопасности.");
                 }
             });
 
